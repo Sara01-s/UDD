@@ -111,6 +111,15 @@
 			object-fit: contain;
 		}
 
+		/* looping video player: whole recording shrunk to fit, on indigo */
+		.reveal .frame .media.player {
+			background: var(--indigo);
+		}
+
+		.reveal .frame .media.player>video {
+			object-fit: contain;
+		}
+
 		.media.contain {
 			background: #202020;
 		}
@@ -720,17 +729,6 @@ float4 Frag(v2f input) : SV_Target
     </script></code></pre>
 					</div>
 				</div>
-			</section>
-
-			<!-- Render debug info to a texture -->
-			<section>
-				<div class="frame one">
-					<div class="media ph"><span>Render graph: rendering to a texture from a tap</span></div>
-				</div>
-				<aside class="notes">
-					[Herman] In more complex setups, you may even want to render the debug info to a texture so you can
-					examine it independently.
-				</aside>
 			</section>
 
 			<!-- Float as color -->
@@ -1637,30 +1635,6 @@ float3 UVToColor(float2 uv) {
 				</div>
 			</section>
 
-			<!-- HLS map · quantized -->
-			<section>
-				<div class="frame">
-					<div class="media"><canvas data-demo="in_hls"></canvas>
-						<div class="cap">Input</div>
-					</div>
-					<div class="media"><canvas data-demo="quantize_hls"></canvas>
-						<div class="cap">Output</div>
-					</div>
-				</div>
-			</section>
-
-			<!-- HLS map · dithering -->
-			<section>
-				<div class="frame">
-					<div class="media"><canvas data-demo="in_hls"></canvas>
-						<div class="cap">Input</div>
-					</div>
-					<div class="media"><canvas data-demo="dither_hls"></canvas>
-						<div class="cap">Output</div>
-					</div>
-				</div>
-			</section>
-
 			<!-- HLS map · hatching -->
 			<section>
 				<div class="frame">
@@ -1671,23 +1645,6 @@ float3 UVToColor(float2 uv) {
 						<div class="cap">Output</div>
 					</div>
 				</div>
-			</section>
-
-			<!-- Point · max filter -->
-			<section>
-				<div class="frame">
-					<div class="media"><canvas data-demo="in_point"></canvas>
-						<div class="cap">Input</div>
-					</div>
-					<div class="media"><canvas data-demo="max_point"></canvas>
-						<div class="cap">Output</div>
-					</div>
-				</div>
-				<aside class="notes">
-					[Herman] The general idea is to use a texture where it is easy to understand how it should look
-					under the transformations at hand. For example, to see that a separated max filter works correctly,
-					you can use a white point on a black background: the result should look like your kernel.
-				</aside>
 			</section>
 
 			<!-- RGBW points · max filter -->
@@ -1701,7 +1658,10 @@ float3 UVToColor(float2 uv) {
 					</div>
 				</div>
 				<aside class="notes">
-					[Herman] To see that each channel is correct, you can use a red, green and blue point. Where the
+					[Herman] The general idea is to use a texture where it is easy to understand how it should look
+					under the transformations at hand. For example, to see that a separated max filter works correctly,
+					you can use a white point on a black background: the result should look like your kernel.
+					To see that each channel is correct, you can use a red, green and blue point. Where the
 					squares overlap you should see the channels combine.
 				</aside>
 			</section>
@@ -1718,22 +1678,6 @@ float3 UVToColor(float2 uv) {
 				</div>
 			</section>
 
-			<!-- Color grid · hue map -->
-			<section>
-				<div class="frame">
-					<div class="media"><canvas data-demo="in_colorgrid"></canvas>
-						<div class="cap">Input</div>
-					</div>
-					<div class="media"><canvas data-demo="huemap_grid"></canvas>
-						<div class="cap">Output</div>
-					</div>
-				</div>
-				<aside class="notes">
-					[Herman] To test correct color transformations, use a grid of colors that includes primaries,
-					secondaries, and a variety of tertiary colors. Grays must stay gray.
-				</aside>
-			</section>
-
 			<!-- Color grid · dithered -->
 			<section>
 				<div class="frame">
@@ -1744,6 +1688,10 @@ float3 UVToColor(float2 uv) {
 						<div class="cap">Output</div>
 					</div>
 				</div>
+				<aside class="notes">
+					[Herman] To test correct color transformations, use a grid of colors that includes primaries,
+					secondaries, and a variety of tertiary colors. Grays must stay gray.
+				</aside>
 			</section>
 
 			<!-- Color grid · tri-tone map -->
@@ -1813,22 +1761,11 @@ float3 UVToColor(float2 uv) {
 				</div>
 			</section>
 
-			<!-- Shapes for outlines -->
-			<section>
-				<div class="frame one">
-					<div class="media"><canvas data-demo="outline_shapes"></canvas></div>
-				</div>
-				<aside class="notes">
-					[Herman] Thin plates, concave corners, intersecting spheres, stairs and thin rings: each one breaks
-					a different kind of outline detection.
-				</aside>
-			</section>
-
 			<!-- ============ 9. TOOLS ============ -->
 			<!-- Frame Debugger -->
 			<section data-section="Tools">
 				<div class="frame one">
-					<div class="media"><video src="Unity%20Talk/Unity%20Talk/graphics/frame_debugger.mp4" data-autoplay loop muted playsinline></video></div>
+					<div class="media player"><video src="Unity%20Talk/Unity%20Talk/graphics/frame_debugger.mp4" data-autoplay loop muted playsinline preload="auto"></video></div>
 				</div>
 				<aside class="notes">
 					[Herman] In complex setups, the final render may involve several passes and multiple shaders. In
@@ -2120,6 +2057,40 @@ float SineNoise(float x, float f) {
 			});
 		}
 
+		// ---- looping video players: restart from the top every time the slide is shown, pause when left ----
+		function initPlayers(deck) {
+			const sync = () => {
+				const current = deck.getCurrentSlide();
+				document.querySelectorAll('.media.player video').forEach(v => {
+					if (current && current.contains(v)) {
+						v.currentTime = 0;
+						v.play().catch(() => {});
+					} else {
+						v.pause();
+					}
+				});
+			};
+			deck.on('slidechanged', sync);
+			sync();
+		}
+
+		// ---- mouse navigation: left click = next, middle click = previous ---------------------------
+		function initMouseNav(deck) {
+			document.addEventListener('click', e => {
+				if (e.button !== 0 || e.target.closest('a, button, input, select, textarea, video[controls]')) return;
+				deck.next();
+			});
+			// middle button: stop the browser's autoscroll, then go back
+			document.addEventListener('mousedown', e => {
+				if (e.button !== 1) return;
+				e.preventDefault();
+				deck.prev();
+			});
+			document.addEventListener('auxclick', e => {
+				if (e.button === 1) e.preventDefault();
+			});
+		}
+
 		fitCode();
 		numberSlides();
 		addSectionTitles();
@@ -2141,6 +2112,8 @@ float SineNoise(float x, float f) {
 			plugins: [RevealHighlight, RevealNotes]
 		}).then(() => {
 			initHighlights(Reveal);
+			initPlayers(Reveal);
+			initMouseNav(Reveal);
 			ShaderDemos.start(() => Reveal.getCurrentSlide());
 		});
 	</script>
