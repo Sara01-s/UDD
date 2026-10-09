@@ -1,0 +1,16 @@
+float4 Frag(v2f input) : SV_Target
+{
+	float4 color = tex2D(_MainTex, input.uv);
+	float t = (color.r + color.g + color.b) / 3.0;
+
+// HIGHLIGHT_START
+	float3 offset = float3(0.5, 0.5, 0.5);
+	float3 amplitude = float3(0.5, 0.5, 0.5);
+	float3 frequency = float3(1.0, 2.0, 1.0);
+	float3 phase = float3(0.6, 0.2, 0.2);
+
+	float3 mapped_color = offset + amplitude * cos(2.0 * PI * (frequency * t + phase));
+// HIGHLIGHT_END
+
+	return float4(mapped_color, color.a);
+}

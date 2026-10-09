@@ -1,0 +1,11 @@
+float4 Frag(v2f input) : SV_Target
+{
+	float4 color = tex2D(_MainTex, input.uv);
+	float t = (color.r + color.g + color.b) / 3.0;
+
+// HIGHLIGHT_START
+	float3 mapped_color = tex2D(_ColorMapTex, float2(t, 0.5)).rgb;
+// HIGHLIGHT_END
+
+	return float4(mapped_color, color.a);
+}

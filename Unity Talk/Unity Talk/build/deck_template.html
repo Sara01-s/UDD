@@ -1,0 +1,41 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Shader Debugging Rehearsal</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;background:#111;font-family:Poppins,sans-serif;color:#fff;overflow:hidden}
+#s{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:6vw 8vw;box-sizing:border-box;transition:background .2s}
+.H{background:#FF716F}.S{background:#17B3B3}
+#sec{position:absolute;top:4vh;left:8vw;font-size:2.2vw;font-weight:600;opacity:.85}
+#who{position:absolute;top:4vh;right:8vw;font-size:2.2vw;font-weight:700}
+#t{font-size:4.2vw;font-weight:600;line-height:1.25}
+#n{position:absolute;bottom:4vh;right:8vw;font-size:1.6vw;opacity:.8}
+#hint{position:absolute;bottom:4vh;left:8vw;font-size:1.3vw;opacity:.6}
+#m{display:none;position:fixed;inset:0;background:#000;z-index:5}
+#m.on{display:flex}
+#m img{flex:none;width:100%;height:100%;object-fit:contain}
+#m video{flex:none;width:100%;height:100%;object-fit:contain;background:#000}
+#m.split img,#m.split video{width:50%}
+#m pre{flex:none;width:50%;height:100%;margin:0;background:#30287A;color:#f5f5f5;padding:4vh 2vw;overflow:hidden;font:1.25vw/1.5 Consolas,'Cascadia Mono',monospace;white-space:pre;tab-size:4;box-sizing:border-box}
+#n{z-index:6}
+#m pre span{display:block}
+#m pre span.hl{background:#0297FE;box-shadow:-2vw 0 0 #0297FE,2vw 0 0 #0297FE}
+#s.media #n{opacity:.4;font-size:.8vw;bottom:.8vh;right:1vw}
+#m .ph{flex:none;width:50%;height:100%;display:flex;align-items:center;justify-content:center;background:#30287A;color:rgba(255,255,255,.7);font:1.4vw Consolas,monospace;box-sizing:border-box;border:3px dashed rgba(255,255,255,.35)}
+#cap{position:absolute;bottom:4vh;left:50%;transform:translateX(-50%);font-size:1.2vw;opacity:.85;max-width:60vw;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.media #t{display:none}.media #hint{display:none}
+</style></head><body>
+<div id="s"><div id="sec"></div><div id="who"></div><div id="t"></div><div id="m"></div><div id="cap"></div><div id="n"></div><div id="hint">← → / click to navigate · F for fullscreen</div></div>
+<script>
+const D=__DATA__;let i=0;
+function show(){const x=D[i];s.className=x.s;sec.textContent=x.sec;who.textContent=x.s=='H'?'Herman':'Sara';t.textContent=x.t;const media=x.imgs&&x.imgs.length;s.classList.toggle('media',!!media);m.textContent='';cap.textContent='';
+if(media){const panes=x.imgs.length+((x.code||x.codemiss)?1:0);m.className='on'+(panes>1?' split':'');
+for(const src of x.imgs){let el;if(src.startsWith('data:video')){el=document.createElement('video');el.src=src;el.autoplay=true;el.loop=true;el.muted=true;el.playsInline=true}else{el=new Image();el.src=src}m.append(el)}
+if(x.code){const pre=document.createElement('pre');let hl=false;for(const ln of x.code.replace(/\r/g,'').split('\n')){if(/HIGHLIGHT_START/.test(ln)){hl=true;continue}if(/HIGHLIGHT_END/.test(ln)){hl=false;continue}const sp=document.createElement('span');sp.className=hl?'hl':'';sp.textContent=ln+'\n';pre.append(sp)}m.append(pre);fitCode(pre)}
+else if(x.codemiss){const p=document.createElement('div');p.className='ph';p.textContent=x.codemiss+' (missing)';m.append(p)}}else m.className='';
+n.textContent=(i+1)+' / '+D.length;}
+function fitCode(pre){let f=22;pre.style.fontSize=f+'px';while(f>8&&(pre.scrollWidth>pre.clientWidth||pre.scrollHeight>pre.clientHeight)){f-=0.5;pre.style.fontSize=f+'px'}}
+addEventListener('resize',()=>{const pre=m.querySelector('pre');if(pre)fitCode(pre)});
+function go(d){i=Math.max(0,Math.min(D.length-1,i+d));show();}
+addEventListener('keydown',e=>{if(['ArrowRight','PageDown',' ','Enter'].includes(e.key))go(1);else if(['ArrowLeft','PageUp','Backspace'].includes(e.key))go(-1);else if(e.key=='Home'){i=0;show()}else if(e.key=='End'){i=D.length-1;show()}else if(e.key=='f'||e.key=='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}});
+addEventListener('click',e=>go(e.clientX<innerWidth/3?-1:1));
+show();
+</script></body></html>

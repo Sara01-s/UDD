@@ -1,0 +1,11 @@
+float4 _Colors[10];
+
+float4 Frag(v2f input) : SV_Target
+{
+// HIGHLIGHT_START
+	int color_index = _Id % _ColorCount;
+	float3 color = _Colors[color_index].rgb;
+// HIGHLIGHT_END
+
+	return float4(color, 1);
+}

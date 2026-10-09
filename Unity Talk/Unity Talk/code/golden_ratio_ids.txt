@@ -1,0 +1,10 @@
+float4 Frag(v2f input) : SV_Target
+{
+// HIGHLIGHT_START
+	int color_index = _Id % _ColorCount;
+	float t = frac(_ColorOffset + GOLDEN_RATIO * color_index);
+	float3 color = tex2D(_GradientTex, float2(t, 0.5)).rgb;
+// HIGHLIGHT_END
+
+	return float4(color, 1);
+}

@@ -1,0 +1,1069 @@
+{
+  "title": "Shader Debugging Techniques",
+  "speakers": {
+    "H": "Herman Tulleken",
+    "S": "Sara San Martín"
+  },
+  "canvas": {
+    "width": 1920,
+    "height": 1080
+  },
+  "asset_root": "C:/Work/Claude/Unity Talk",
+  "slides": [
+    {
+      "index": 1,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Super brief intro",
+      "description": "Title: Shader Debugging Techniques — Herman Tulleken & Sara San Martín",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 2,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Motivation",
+      "description": "Mostrar código de un diffuse lighting",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 3,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Motivation",
+      "description": "el error de tener la dirección de la luz en un uniform no bindeada. Mostrar expectativa vs realidad (pantalla u objeto en negro)",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 4,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Motivation",
+      "description": "Galería de 4 errores gráficos comunes: Pantalla negra, NaNs, normales en view, uv estiradas.",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 5,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Motivation",
+      "description": "Herramientas de CPU: logs, tests, breakpoints.",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 6,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Motivation",
+      "description": "“return float4(rgb)” como herramienta de debug de los shaders (conecta con los próximos ejemplos de Encoding)",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 7,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Complex compound example",
+      "layout": "full",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/complex_example.png",
+          "position": "full"
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Splitscreen: float as color / code",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/encoding_fullscreen.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/outline_debug_full_screen.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              20,
+              22
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Splitscreen: float as color / code",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/viridis.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/color_map_texture.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              6,
+              6
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Splitscreen: float as color / code",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/turbo.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/color_map_texture.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              6,
+              6
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Splitscreen: float as bar / code",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/bar.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/signed_bar.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              6,
+              6
+            ],
+            [
+              30,
+              37
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Splitscreen: float as dial / code",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/dial.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/dial.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              6,
+              6
+            ],
+            [
+              40,
+              45
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "splitscreen",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/cosine.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/cosine_palette.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              6,
+              11
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Splitscreen: flow_blur_gradient gradient_rg.txt",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/flow_blur_gradient.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/gradient_rg.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              5,
+              5
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Splitscreen: flow_blur_abs gradient_abs.txt",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/flow_blur_abs.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/gradient_abs.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              5,
+              5
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Splitscreen: flow_blur_hl gradient_direction_hl.txt",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/flow_blur_hl.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/gradient_direction_hl.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              5,
+              10
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Splitscreen: vector normalized / code",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 18,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Splitscreen: vector abs / code",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 19,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Split screen: palette.png palette_id.txt",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/palette.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/palette_id.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              5,
+              6
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Split screen: hash.png / mod_id_hash.txt",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/hash.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/mod_id_hash.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              14,
+              16
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 21,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "SplitScreen: digits.png debug_float.txt",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/digits.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/debug_float.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              6,
+              6
+            ],
+            [
+              53,
+              55
+            ],
+            [
+              59,
+              61
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "SplitScreen: shader_graph_example.png / Code",
+      "layout": "full",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/shader_graph_example.PNG",
+          "position": "full"
+        }
+      ]
+    },
+    {
+      "index": 23,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Splitscreen: Full screen example / code",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/encoding_fullscreen.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/outline_debug_full_screen.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              20,
+              22
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 24,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Splitscreen: Example with debug color in square / code (outline example)",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/encoding_half.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/outline_debug_split_screen.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              20,
+              25
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 25,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Splitscreen: Example with debug color in square / code (outline example)",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/encoding_mouseposition.png",
+          "position": "left"
+        },
+        {
+          "type": "code",
+          "path": "code/outline_debug_mouse_position.txt",
+          "position": "right",
+          "highlight_lines": [
+            [
+              20,
+              28
+            ]
+          ],
+          "note": "Strip // HIGHLIGHT_START / // HIGHLIGHT_END marker lines; highlight_lines are 1-based, counted after stripping."
+        }
+      ]
+    },
+    {
+      "index": 26,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "Show shader graph example with rendering to texture from a tap",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 27,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Encodings",
+      "description": "encoding_texture.png",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 28,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Flow control",
+      "description": "Mostrar un return float4(1,0,01) para asegurarse de que el shader funciona.",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 29,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Flow control",
+      "description": "Uso de un return para saber que el código “pasó por aquí”.",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 30,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Flow control",
+      "description": "Tres return float4(...) en distintas ramas: If (true), elseif(...) else (...). En un diffuse por ejemplo.",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 31,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Flow control",
+      "description": "Uso preprocesador con #define e #if para ver texturas intermedias. Uso de #shader_feature_local con KeywordEnum.",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 32,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "View modes",
+      "description": "Antes y después con un Lerp.",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 33,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "View modes",
+      "description": "Depth vista como color con depth.rrr",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 34,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "View modes",
+      "description": "Muchos parámetros en un box blur por ejemplo (puede ser otro efecto)",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 35,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Exaggerate",
+      "description": "el mismo blur con radio 2 vs radio 40",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 36,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Exaggerate",
+      "description": "normal map con strength * 10 para ver si está hundido o elevado.",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 37,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Exaggerate",
+      "description": "log2(color + 1) para detectar zonas brillantes de un HDR sobresaturado.",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 38,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Animation and time",
+      "description": "Splitscreen: almost all black, threshold code.",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 39,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Animation and time",
+      "description": "Animation: threshold slides so the right threshold becomes visible.",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 40,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Animation and time",
+      "description": "Split screen: same animation ^, code.",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 41,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Debug images for textures, maps, scene",
+      "description": "Scene with UV Map textures",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 42,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Debug images for textures, maps, scene",
+      "description": "Scene with UV gradients.",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 43,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Debug images for textures, maps, scene",
+      "description": "Splitscreen: gradient / quantized",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/gradient.png",
+          "position": "left"
+        },
+        {
+          "type": "image",
+          "path": "graphics/quantized.png",
+          "position": "right"
+        }
+      ]
+    },
+    {
+      "index": 44,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Debug images for textures, maps, scene",
+      "description": "Splitscreen: gradient / dithered",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/gradient.png",
+          "position": "left"
+        },
+        {
+          "type": "image",
+          "path": "graphics/dithered.png",
+          "position": "right"
+        }
+      ]
+    },
+    {
+      "index": 45,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Debug images for textures, maps, scene",
+      "description": "Splitscreen: gradient / hatching",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/gradient.png",
+          "position": "left"
+        },
+        {
+          "type": "image",
+          "path": "graphics/hatching.png",
+          "position": "right"
+        }
+      ]
+    },
+    {
+      "index": 46,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Debug images for textures, maps, scene",
+      "description": "Splitscreen: HLS map/ hsl_hatching",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/hsl.png",
+          "position": "left"
+        },
+        {
+          "type": "image",
+          "path": "graphics/hsl_hatching.png",
+          "position": "right"
+        }
+      ]
+    },
+    {
+      "index": 47,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Debug images for textures, maps, scene",
+      "description": "Splitscreen: rgb_dots/ rgb_dots_max",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/rgb_dots.png",
+          "position": "left"
+        },
+        {
+          "type": "image",
+          "path": "graphics/rgb_dots_max.png",
+          "position": "right"
+        }
+      ]
+    },
+    {
+      "index": 48,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Debug images for textures, maps, scene",
+      "description": "Splitscreen: rgb_dots_box / rgb_dots_gaussian",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/rgb_dots_box.png",
+          "position": "left"
+        },
+        {
+          "type": "image",
+          "path": "graphics/rgb_dots_gaussian.png",
+          "position": "right"
+        }
+      ]
+    },
+    {
+      "index": 49,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Debug images for textures, maps, scene",
+      "description": "Splitscreen: color_grid / color_grid_dithered",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/color_grid.png",
+          "position": "left"
+        },
+        {
+          "type": "image",
+          "path": "graphics/color_grid_dithered.png",
+          "position": "right"
+        }
+      ]
+    },
+    {
+      "index": 50,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Debug images for textures, maps, scene",
+      "description": "Splitscreen: color_grid / color_grid_tritone",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/color_grid.png",
+          "position": "left"
+        },
+        {
+          "type": "image",
+          "path": "graphics/color_grid_tritone.png",
+          "position": "right"
+        }
+      ]
+    },
+    {
+      "index": 51,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Debug images for textures, maps, scene",
+      "description": "Splitscreen - polar_grid_h/polar_grid_V",
+      "layout": "split",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/polar_grid_h.png",
+          "position": "left"
+        },
+        {
+          "type": "image",
+          "path": "graphics/polar_grid_v.png",
+          "position": "right"
+        }
+      ]
+    },
+    {
+      "index": 52,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Debug images for textures, maps, scene",
+      "description": "Splitscreen - polar_grid_h/polar_grid_V",
+      "layout": "full",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/outline_sobel.png",
+          "position": "full"
+        }
+      ]
+    },
+    {
+      "index": 53,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Debug images for textures, maps, scene",
+      "description": "Splitscreen - polar_grid_h/polar_grid_V",
+      "layout": "full",
+      "ready": true,
+      "assets": [
+        {
+          "type": "image",
+          "path": "graphics/outline_max.png",
+          "position": "full"
+        }
+      ]
+    },
+    {
+      "index": 54,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Tools",
+      "description": "frame_debugger.mp4",
+      "layout": "full",
+      "ready": true,
+      "assets": [
+        {
+          "type": "video",
+          "path": "graphics/frame_debugger.mp4",
+          "position": "full"
+        }
+      ]
+    },
+    {
+      "index": 55,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Tools",
+      "description": "Renderdoc example",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 56,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Tools",
+      "description": "Splitscreen Graph / Equation",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 57,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Tools",
+      "description": "Splitscreen Graph / Equation",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 58,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Tools",
+      "description": "Splitscreen Graph / Shader code",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 59,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Coding tricks",
+      "description": "Título “Little code tricks”",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 60,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Coding tricks",
+      "description": "código uso de constante y no uniform",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 61,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Coding tricks",
+      "description": "código colores fijos + imágen",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 62,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Coding tricks",
+      "description": "Como se ve una onda de seno determinista.",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 63,
+      "speaker": "H",
+      "speaker_name": "Herman Tulleken",
+      "section": "Brief Outro",
+      "description": "Links and QR",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    },
+    {
+      "index": 64,
+      "speaker": "S",
+      "speaker_name": "Sara San Martín",
+      "section": "Brief Outro",
+      "description": "Links and QR",
+      "layout": "text",
+      "ready": false,
+      "assets": []
+    }
+  ]
+}

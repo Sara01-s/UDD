@@ -1,0 +1,10 @@
+float4 Frag(v2f input) : SV_Target
+{
+	float2 gradient = sobel_gradient(input.uv);
+
+// HIGHLIGHT_START
+	float2 color = abs(gradient);
+// HIGHLIGHT_END
+
+	return float4(color, 0.0, 1.0);
+}

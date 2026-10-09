@@ -1,0 +1,2149 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Shader Debugging Techniques</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="stylesheet"
+		href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reset.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/theme/white.min.css">
+	<link rel="stylesheet"
+		href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+	<style>
+		/*
+		 * Every slide is a 1920x1080 frame, like the reference:
+		 *   .frame            2 columns: media on the left, code (or text) panel on the right
+		 *   .frame.one        a single full-bleed column (media only, or a centered code / text panel)
+		 *   .frame.quad       2x2 media cells
+		 * Code size is computed per panel (see fitCode): the less code, the bigger the font.
+		 */
+		:root {
+			--coral: #ff716f;
+			--accent: #f9a332;
+			--yellow: #f9ee34;
+			--cyan: #7bd9e1;
+			--blue: #0297fe;
+			--indigo: #30287a;
+			--panel: var(--indigo);
+			--bg: #0c0a24;
+			--r-background-color: var(--bg);
+			--r-main-color: #ffffff;
+			--r-heading-color: #ffffff;
+			--r-link-color: var(--blue);
+			--r-selection-background-color: var(--blue);
+			--r-selection-color: #ffffff;
+			--r-main-font: 'Poppins', system-ui, sans-serif;
+			--r-heading-font: 'Poppins', system-ui, sans-serif;
+			--r-code-font: 'JetBrains Mono', ui-monospace, monospace;
+			--r-main-font-size: 40px;
+		}
+
+		html,
+		body,
+		.reveal-viewport {
+			background: var(--bg);
+		}
+
+		.reveal .slides>section {
+			height: 100%;
+			padding: 0;
+			text-align: left;
+		}
+
+		/* ---------- frame ---------- */
+		.frame {
+			position: absolute;
+			inset: 0;
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			background: var(--panel);
+		}
+
+		.frame.one {
+			grid-template-columns: 1fr;
+		}
+
+		.frame.quad {
+			grid-template-rows: 1fr 1fr;
+		}
+
+		/* ---------- media (images / simulations), always full-bleed ---------- */
+		.media,
+		.cell {
+			position: relative;
+			overflow: hidden;
+			min-width: 0;
+			min-height: 0;
+			background: #000;
+		}
+
+		.media.stack {
+			display: grid;
+			grid-template-rows: 1fr 1fr;
+		}
+
+		.reveal .frame .media>canvas,
+		.reveal .frame .media>img,
+		.reveal .frame .media>video,
+		.reveal .frame .cell>canvas,
+		.reveal .frame .cell>img {
+			position: absolute;
+			inset: 0;
+			display: block;
+			width: 100%;
+			height: 100%;
+			max-width: none;
+			max-height: none;
+			margin: 0;
+			border: 0;
+			background: none;
+			box-shadow: none;
+			object-fit: cover;
+			object-position: var(--pos, 50% 50%);
+		}
+
+		/* screenshots that aren't 16:9 halves: show whole, on their own dark UI gray */
+		.reveal .frame .media.contain>img {
+			object-fit: contain;
+		}
+
+		.media.contain {
+			background: #202020;
+		}
+
+		.media.swatches {
+			display: flex;
+		}
+
+		.media.swatches i {
+			flex: 1;
+		}
+
+		.media.ph {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: #1a1644;
+		}
+
+		.media.ph::before {
+			content: '';
+			position: absolute;
+			inset: 40px;
+			border: 3px dashed rgba(255, 255, 255, 0.28);
+			border-radius: 24px;
+		}
+
+		.media.ph span {
+			position: relative;
+			max-width: 70%;
+			text-align: center;
+			font-size: 44px;
+			line-height: 1.3;
+			color: rgba(255, 255, 255, 0.7);
+		}
+
+		.media.light {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: #ffffff;
+		}
+
+		.media.light .qr {
+			width: 56%;
+			aspect-ratio: 1;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			border: 3px dashed rgba(48, 40, 122, 0.35);
+			border-radius: 24px;
+			font-size: 44px;
+			color: rgba(48, 40, 122, 0.6);
+		}
+
+		/* captions over media */
+		.cap,
+		.labels span {
+			padding: 0.3em 0.8em;
+			border-radius: 999px;
+			background: rgba(48, 40, 122, 0.9);
+			color: #ffffff;
+			font-weight: 600;
+			font-size: 30px;
+			line-height: 1.2;
+		}
+
+		.cap {
+			position: absolute;
+			left: 32px;
+			bottom: 32px;
+		}
+
+		.labels {
+			position: absolute;
+			left: 0;
+			right: 0;
+			bottom: 32px;
+			display: grid;
+			justify-items: center;
+			pointer-events: none;
+		}
+
+		.labels.top {
+			bottom: auto;
+			top: 64px;
+		}
+
+		.labels.n2 {
+			grid-template-columns: repeat(2, 1fr);
+		}
+
+		.labels.n3 {
+			grid-template-columns: repeat(3, 1fr);
+		}
+
+		.labels.n4 {
+			grid-template-columns: repeat(4, 1fr);
+		}
+
+		.labels.rows {
+			top: 0;
+			bottom: 0;
+			right: auto;
+			left: 32px;
+			grid-template-rows: 1fr 1fr;
+			justify-items: start;
+		}
+
+		.labels.rows span {
+			align-self: end;
+			margin-bottom: 32px;
+		}
+
+		.credit {
+			position: absolute;
+			right: 32px;
+			bottom: 28px;
+			font-size: 28px;
+			color: rgba(255, 255, 255, 0.85);
+			text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+		}
+
+		/* ---------- panels (code / text) ---------- */
+		.panel {
+			position: relative;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			min-width: 0;
+			padding: 84px 56px;
+			overflow: hidden;
+			background: var(--panel);
+			color: #ffffff;
+		}
+
+		.frame.one .panel {
+			padding: 84px 160px;
+		}
+
+		.num {
+			position: absolute;
+			right: 72px;
+			bottom: 30px;
+			font-size: 34px;
+			font-weight: 500;
+			line-height: 1;
+			font-variant-numeric: tabular-nums;
+			color: rgba(255, 255, 255, 0.5);
+		}
+
+		.reveal .panel pre {
+			width: auto;
+			max-width: 100%;
+			margin: 0;
+			box-shadow: none;
+			background: none;
+			font-size: var(--fs, 32px);
+			line-height: 1.5;
+			text-align: left;
+			word-wrap: normal;
+		}
+
+		.reveal .panel pre code {
+			max-height: none;
+			padding: 0;
+			overflow: visible;
+			background: none;
+			color: #ffffff;
+			font-family: var(--r-code-font);
+			font-variant-ligatures: none;
+			font-feature-settings: "liga" 0, "calt" 0;
+		}
+
+		.reveal .panel pre.eq {
+			font-family: var(--r-code-font);
+			font-variant-ligatures: none;
+		}
+
+		.reveal .panel pre.eq .dim {
+			color: rgba(123, 217, 225, 0.65);
+		}
+
+		.reveal .panel pre.eq .k1 {
+			color: var(--coral);
+		}
+
+		.reveal .panel pre.eq .k4 {
+			color: var(--yellow);
+		}
+
+		.reveal .panel pre.eq .k16 {
+			color: var(--cyan);
+		}
+
+		/* highlighted lines: full-bleed blue bar, like the reference */
+		.reveal .panel pre .ln {
+			display: block;
+			min-height: 1.5em;
+		}
+
+		.reveal .panel pre .ln.hl {
+			margin: 0 -2000px;
+			padding: 0 2000px;
+			background: var(--blue);
+		}
+
+		.reveal .panel pre .ln.hl * {
+			color: #ffffff !important;
+		}
+
+		/* syntax colors */
+		.reveal .hljs-keyword,
+		.reveal .hljs-literal {
+			color: var(--coral);
+		}
+
+		.reveal .hljs-type {
+			color: var(--cyan);
+		}
+
+		.reveal .hljs-built_in,
+		.reveal .hljs-title,
+		.reveal .hljs-string {
+			color: var(--yellow);
+		}
+
+		.reveal .hljs-number {
+			color: var(--accent);
+		}
+
+		.reveal .hljs-meta {
+			color: var(--blue);
+		}
+
+		.reveal .hljs-comment {
+			color: rgba(123, 217, 225, 0.65);
+		}
+
+		/* text panels */
+		.panel.text {
+			align-items: flex-start;
+			padding: 84px 96px;
+		}
+
+		.frame.one .panel.text {
+			padding: 84px 180px;
+		}
+
+		.reveal .panel h1,
+		.reveal .panel h2 {
+			margin: 0;
+			text-transform: none;
+			font-weight: 600;
+			letter-spacing: -0.025em;
+			line-height: 1.05;
+			color: #ffffff;
+		}
+
+		.reveal .panel h1 {
+			font-size: 96px;
+		}
+
+		.reveal .panel h2 {
+			margin-bottom: 0.7em;
+			font-size: 56px;
+			color: var(--yellow);
+		}
+
+		.reveal .panel .names {
+			margin: 1.4em 0 0;
+			font-size: 40px;
+			line-height: 1.4;
+			color: rgba(255, 255, 255, 0.7);
+		}
+
+		.reveal .panel ul {
+			margin: 0;
+			padding: 0;
+			list-style: none;
+		}
+
+		.reveal .panel ul.biglist li {
+			margin: 0.3em 0;
+			padding: 0.1em 0 0.1em 0.5em;
+			border-left: 12px solid var(--accent);
+			font-size: 100px;
+			font-weight: 600;
+			letter-spacing: -0.02em;
+			line-height: 1.15;
+		}
+
+		.reveal .panel ul.shape-list li {
+			margin: 0.35em 0;
+			font-size: 64px;
+			font-weight: 500;
+			line-height: 1.2;
+		}
+
+		/* ---------- section title: big h1 over the first slide of a section ----------
+		 * Added by addSectionTitles() as a fade-out fragment, so it shows on entering the section
+		 * and the next click hides it. */
+		.reveal .slides section .section-title {
+			position: absolute;
+			inset: 0;
+			z-index: 10;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0 160px;
+			pointer-events: none;
+		}
+
+		.reveal .section-title h1 {
+			margin: 0;
+			text-align: center;
+			text-transform: none;
+			text-wrap: balance;
+			font-size: 180px;
+			font-weight: 700;
+			letter-spacing: -0.03em;
+			line-height: 1.02;
+			color: #ffffff;
+			text-shadow:
+				0 4px 10px rgba(12, 10, 36, 0.7),
+				0 14px 48px rgba(12, 10, 36, 0.85),
+				0 0 120px rgba(12, 10, 36, 0.6);
+		}
+
+		.reveal .slides section.present .section-title h1 {
+			animation: section-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+		}
+
+		@keyframes section-in {
+			from {
+				opacity: 0;
+				transform: scale(0.92);
+			}
+
+			to {
+				opacity: 1;
+				transform: none;
+			}
+		}
+
+		@media (prefers-reduced-motion: reduce) {
+			.reveal .slides section.present .section-title h1 {
+				animation: none;
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<div class="reveal">
+		<div class="slides">
+
+			<!-- ============ 1. INTRO ============ -->
+			<!-- Shader Debugging Techniques -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="scene"></canvas></div>
+					<div class="panel text">
+						<h1>Shader Debugging<br>Techniques</h1>
+						<p class="names">Herman Tulleken<br>Sara San Martín</p>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] Hi, thank you for coming to our talk. I am Herman Tulleken from Gamelogic, and this is my
+					colleague Sara San Martín, an independent graphics programmer.
+					This talk is a mix of English and Spanish. After the talk we will make a transcript available in
+					both languages, so if you miss something you will be able to catch it later.
+				</aside>
+			</section>
+
+			<!-- ============ 2. MOTIVACIÓN ============ -->
+			<!-- Un shader de iluminación difusa -->
+			<section data-section="Motivación">
+				<div class="frame">
+					<div class="media"><canvas data-demo="diffuse"></canvas></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float4 frag (v2f i) : SV_Target {
+    float3 n = normalize(i.normal);
+    float3 l = normalize(_LightDir);
+    float ndotl = saturate(dot(n, l));
+    float3 c = tex2D(_MainTex, i.uv).rgb;
+
+    return float4(c * ndotl, 1);
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] Imaginemos que estamos desarrollando un shader. Lo ideal sería que funcione a la primera, sin
+					embargo ese no suele ser el caso.
+				</aside>
+			</section>
+
+			<!-- Expectativa vs. realidad -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="diffuse"></canvas>
+						<div class="cap">Expectativa</div>
+					</div>
+					<div class="media"><img src="img/expect_broken.png" alt="Esfera completamente negra">
+						<div class="cap">Realidad</div>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] Probablemente nos encontremos con un error gráfico y nos tocará debuggear. Aquí la dirección
+					de la luz está en un uniform que nunca se bindeó desde la CPU.
+				</aside>
+			</section>
+
+			<!-- Errores gráficos comunes -->
+			<section>
+				<div class="frame quad">
+					<div class="cell"><img src="img/err_black.png" alt="Pantalla negra">
+						<div class="cap">Pantalla negra</div>
+					</div>
+					<div class="cell"><canvas data-demo="err_nan"></canvas>
+						<div class="cap">NaNs</div>
+					</div>
+					<div class="cell"><canvas data-demo="err_viewnormals"></canvas>
+						<div class="cap">Normales en view</div>
+					</div>
+					<div class="cell"><canvas data-demo="err_stretched_uv"></canvas>
+						<div class="cap">UVs estiradas</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Herramientas de depuración en la CPU -->
+			<section>
+				<div class="frame one">
+					<div class="panel text">
+						<h2>Herramientas de depuración en la CPU</h2>
+						<ul class="biglist">
+							<li class="fragment">Logs</li>
+							<li class="fragment">Tests unitarios</li>
+							<li class="fragment">Breakpoints</li>
+						</ul>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] El problema es que, al contrario de la CPU, en shaders no tenemos logs, tests unitarios o
+					breakpoints (sin herramientas externas) que nos ayuden a diagnosticar el problema.
+				</aside>
+			</section>
+
+			<!-- GPU -->
+			<section>
+				<div class="frame one">
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+return float4(rgb, 1);
+  </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] Es por eso que durante esta charla veremos distintas técnicas para poder depurar shaders,
+					empezando por lo único que siempre tenemos: el color de salida.
+				</aside>
+			</section>
+
+			<!-- ============ 3. ENCODINGS ============ -->
+			<!-- Encoding values as color -->
+			<section data-section="Encodings">
+				<div class="frame one">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/complex_example.png" alt="Escena con varias vistas de debug a la vez: barras, diales y números"></div>
+				</div>
+				<aside class="notes">
+					[Herman] Usually, there is no simple way to examine the value of a variable. Therefore, it is common
+					to encode values in a way that can be displayed.
+				</aside>
+			</section>
+
+			<!-- Full screen -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_fullscreen.png" alt="Valor del detector de bordes mostrado a pantalla completa"></div>
+					<div class="panel code">
+						<pre data-hl="20-22"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 uv = input.uv;
+    float2 offset = _MainTex_TexelSize.xy * _JumpSize;
+
+    float3 bottom_left  = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
+    float3 bottom       = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
+    float3 bottom_right = tex2D(_MainTex, uv + offset * float2( 1, -1)).rgb;
+    float3 left         = tex2D(_MainTex, uv + offset * float2(-1,  0)).rgb;
+    float3 right        = tex2D(_MainTex, uv + offset * float2( 1,  0)).rgb;
+    float3 top_left     = tex2D(_MainTex, uv + offset * float2(-1,  1)).rgb;
+    float3 top          = tex2D(_MainTex, uv + offset * float2( 0,  1)).rgb;
+    float3 top_right    = tex2D(_MainTex, uv + offset * float2( 1,  1)).rgb;
+
+    float3 gradient_x = (top_right + 2 * right + bottom_right) - (top_left + 2 * left + bottom_left);
+    float3 gradient_y = (top_left + 2 * top + top_right) - (bottom_left + 2 * bottom + bottom_right);
+
+    float edge = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
+
+#if TOOL_SHOW_EDGE
+    return float4(edge.xxx, 1);
+#endif
+
+    float4 color = tex2D(_MainTex, uv);
+
+    return edge > _Threshold ? _LineColor : color;
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] Sometimes it is ok to display the value per pixel, either of the screen or the triangle
+					mesh.
+				</aside>
+			</section>
+
+			<!-- Debug view on part of the screen · split screen -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_half.png" alt="Mitad izquierda con el valor de bordes, mitad derecha con la escena"></div>
+					<div class="panel code">
+						<pre data-hl="20-25"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 uv = input.uv;
+    float2 offset = _MainTex_TexelSize.xy * _JumpSize;
+
+    float3 bottom_left  = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
+    float3 bottom       = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
+    float3 bottom_right = tex2D(_MainTex, uv + offset * float2( 1, -1)).rgb;
+    float3 left         = tex2D(_MainTex, uv + offset * float2(-1,  0)).rgb;
+    float3 right        = tex2D(_MainTex, uv + offset * float2( 1,  0)).rgb;
+    float3 top_left     = tex2D(_MainTex, uv + offset * float2(-1,  1)).rgb;
+    float3 top          = tex2D(_MainTex, uv + offset * float2( 0,  1)).rgb;
+    float3 top_right    = tex2D(_MainTex, uv + offset * float2( 1,  1)).rgb;
+
+    float3 gradient_x = (top_right + 2 * right + bottom_right) - (top_left + 2 * left + bottom_left);
+    float3 gradient_y = (top_left + 2 * top + top_right) - (bottom_left + 2 * bottom + bottom_right);
+
+    float edge = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
+
+#if TOOL_SHOW_EDGE
+    if (uv.x < 0.5)
+    {
+        return float4(edge.xxx, 1);
+    }
+#endif
+
+    float4 color = tex2D(_MainTex, uv);
+
+    return edge > _Threshold ? _LineColor : color;
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] For post processes, you may want to limit it to a specific part of the screen so you can
+					see the effect, or display more than one value. Here the left half shows the raw edge-detection
+					value behind the outline effect.
+				</aside>
+			</section>
+
+			<!-- Debug view on part of the screen · around the mouse -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_mouseposition.png" alt="Círculo alrededor del ratón que muestra el valor de bordes"></div>
+					<div class="panel code">
+						<pre data-hl="20-28"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 uv = input.uv;
+    float2 offset = _MainTex_TexelSize.xy * _JumpSize;
+
+    float3 bottom_left  = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
+    float3 bottom       = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
+    float3 bottom_right = tex2D(_MainTex, uv + offset * float2( 1, -1)).rgb;
+    float3 left         = tex2D(_MainTex, uv + offset * float2(-1,  0)).rgb;
+    float3 right        = tex2D(_MainTex, uv + offset * float2( 1,  0)).rgb;
+    float3 top_left     = tex2D(_MainTex, uv + offset * float2(-1,  1)).rgb;
+    float3 top          = tex2D(_MainTex, uv + offset * float2( 0,  1)).rgb;
+    float3 top_right    = tex2D(_MainTex, uv + offset * float2( 1,  1)).rgb;
+
+    float3 gradient_x = (top_right + 2 * right + bottom_right) - (top_left + 2 * left + bottom_left);
+    float3 gradient_y = (top_left + 2 * top + top_right) - (bottom_left + 2 * bottom + bottom_right);
+
+    float edge = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
+
+#if TOOL_SHOW_EDGE
+    float2 pixel = uv * _MainTex_TexelSize.zw;
+    float2 mouse_pixel = _DebugMousePosition.xy * _MainTex_TexelSize.zw;
+
+    if (distance(pixel, mouse_pixel) < _DebugRadius)
+    {
+        return float4(edge.xxx, 1);
+    }
+#endif
+
+    float4 color = tex2D(_MainTex, uv);
+
+    return edge > _Threshold ? _LineColor : color;
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Render debug info to a texture -->
+			<section>
+				<div class="frame one">
+					<div class="media ph"><span>Render graph: rendering to a texture from a tap</span></div>
+				</div>
+				<aside class="notes">
+					[Herman] In more complex setups, you may even want to render the debug info to a texture so you can
+					examine it independently.
+				</aside>
+			</section>
+
+			<!-- Float as color -->
+			<section>
+				<div class="frame one">
+					<div class="media"><canvas data-demo="float_color"></canvas>
+						<div class="labels n3"><span>Gray</span><span>Viridis</span><span>Turbo</span></div>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] Black and white is easy and fine for many purposes, but better color maps exist, for
+					example Viridis or Turbo, for better discrimination. Cosine palettes
+					(iquilezles.org/articles/palettes) are another compact option.
+				</aside>
+			</section>
+
+			<!-- Float as color · color map texture · Viridis -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/viridis.png" alt="Escena con la luminancia mapeada a Viridis"></div>
+					<div class="panel code">
+						<pre data-hl="6"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float4 color = tex2D(_MainTex, input.uv);
+    float t = (color.r + color.g + color.b) / 3.0;
+
+    float3 mapped_color = tex2D(_ColorMapTex, float2(t, 0.5)).rgb;
+
+    return float4(mapped_color, color.a);
+}
+  </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Float as color · color map texture · Turbo -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/turbo.png" alt="Escena con la luminancia mapeada a Turbo"></div>
+					<div class="panel code">
+						<pre data-hl="6"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float4 color = tex2D(_MainTex, input.uv);
+    float t = (color.r + color.g + color.b) / 3.0;
+
+    float3 mapped_color = tex2D(_ColorMapTex, float2(t, 0.5)).rgb;
+
+    return float4(mapped_color, color.a);
+}
+  </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Float as color · cosine palette -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/cosine.png" alt="Escena con la luminancia mapeada a una paleta coseno"></div>
+					<div class="panel code">
+						<pre data-hl="6-11"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float4 color = tex2D(_MainTex, input.uv);
+    float t = (color.r + color.g + color.b) / 3.0;
+
+    float3 offset = float3(0.5, 0.5, 0.5);
+    float3 amplitude = float3(0.5, 0.5, 0.5);
+    float3 frequency = float3(1.0, 2.0, 1.0);
+    float3 phase = float3(0.6, 0.2, 0.2);
+
+    float3 mapped_color = offset + amplitude * cos(2.0 * PI * (frequency * t + phase));
+
+    return float4(mapped_color, color.a);
+}
+  </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] Cosine palettes: iquilezles.org/articles/palettes
+				</aside>
+			</section>
+
+			<!-- Float as a bar -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/bar.png" alt="Barra de debug con signo sobre la escena pixelada"></div>
+					<div class="panel code">
+						<pre data-hl="6,30-37"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 uv = input.uv;
+    float slope = ...;
+
+    DEBUG_SIGNED_BAR(uv, slope, 0);
+
+    ...
+}
+
+#define DEBUG_SIGNED_BAR(uv, value, row) \
+    { \
+        float4 debug_color; \
+        if (debug_signed_bar((uv), (value), (row), debug_color)) \
+        { \
+            return debug_color; \
+        } \
+    }
+
+bool debug_signed_bar(float2 uv, float value, int row, out float4 color)
+{
+    float2 cell_uv;
+    color = 0;
+
+    if (!debug_cell(uv, row, 1, 0, 1, cell_uv))
+    {
+        return false;
+    }
+
+    float position = cell_uv.x * 2.0 - 1.0;
+    float clamped_value = clamp(value, -1.0, 1.0);
+
+    bool is_on_bar = clamped_value >= 0.0
+        ? position >= 0.0 && position < clamped_value
+        : position < 0.0 && position >= clamped_value;
+
+    float3 bar_color = abs(value) <= 1.0 ? FOREGROUND_COLOR : OUT_OF_RANGE_COLOR;
+
+    color = float4(is_on_bar ? bar_color : BACKGROUND_COLOR, 1);
+    return true;
+}
+
+bool debug_cell(float2 uv, int row, int row_span, int column, int column_count, out float2 cell_uv)
+{
+    float row_size = _ScreenParams.y / ROW_COUNT;
+    float2 pixel = float2(uv.x, 1.0 - uv.y) * _ScreenParams.xy;
+
+    float cell_width = REGION_WIDTH_IN_ROWS * row_size / column_count;
+    float2 cell_min = float2(column * cell_width, (row + 1) * row_size);
+    float2 cell_size = float2(cell_width, row_span * row_size);
+
+    float2 local = (pixel - cell_min) / cell_size;
+    cell_uv = float2(local.x, 1.0 - local.y);
+
+    return all(local >= 0.0) && all(local < 1.0);
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Float as a dial -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/dial.png" alt="Dial de debug en la esquina de la escena pixelada"></div>
+					<div class="panel code">
+						<pre data-hl="6,40-45"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 uv = input.uv;
+    float angle_in_turns = ...;
+
+    DEBUG_DIAL(uv, angle_in_turns, 0, 0);
+
+    ...
+}
+
+#define DEBUG_DIAL(uv, value, row, column) \
+    { \
+        float4 debug_color; \
+        if (debug_dial((uv), (value), (row), (column), debug_color)) \
+        { \
+            return debug_color; \
+        } \
+    }
+
+bool debug_dial(float2 uv, float value, int row, int column, out float4 color)
+{
+    float2 cell_uv;
+    color = 0;
+
+    if (!debug_cell(uv, row, 2, column, 2, cell_uv))
+    {
+        return false;
+    }
+
+    float radius_in_pixels = DIAL_RADIUS * _ScreenParams.y / ROW_COUNT;
+    float2 position = (cell_uv * 2.0 - 1.0) / DIAL_RADIUS;
+    float distance_from_center = length(position);
+
+    if (distance_from_center > 1.0)
+    {
+        color = float4(BACKGROUND_COLOR, 1);
+        return true;
+    }
+
+    float pixel_turns = frac(atan2(position.y, position.x) / (2.0 * PI));
+    float turn_difference = abs(frac(pixel_turns - value + 0.5) - 0.5);
+    float distance_to_needle = turn_difference * 2.0 * PI * distance_from_center * radius_in_pixels;
+
+    float needle_width = lerp(HUB_WIDTH, TIP_WIDTH, distance_from_center);
+    bool is_on_needle = distance_to_needle < needle_width;
+
+    color = float4(is_on_needle ? FOREGROUND_COLOR : FACE_COLOR, 1);
+    return true;
+}
+
+bool debug_cell(float2 uv, int row, int row_span, int column, int column_count, out float2 cell_uv)
+{
+    float row_size = _ScreenParams.y / ROW_COUNT;
+    float2 pixel = float2(uv.x, 1.0 - uv.y) * _ScreenParams.xy;
+
+    float cell_width = REGION_WIDTH_IN_ROWS * row_size / column_count;
+    float2 cell_min = float2(column * cell_width, (row + 1) * row_size);
+    float2 cell_size = float2(cell_width, row_span * row_size);
+
+    float2 local = (pixel - cell_min) / cell_size;
+    cell_uv = float2(local.x, 1.0 - local.y);
+
+    return all(local >= 0.0) && all(local < 1.0);
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- 2D vector as color -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/flow_blur_gradient.png" alt="Gradiente Sobel codificado en RG con 0.5 como cero"></div>
+					<div class="panel code">
+						<pre data-hl="5"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 gradient = sobel_gradient(input.uv);
+
+    float2 color = gradient * 0.5 + 0.5;
+
+    return float4(color, 0.0, 1.0);
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- 2D vector as color · abs -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/flow_blur_abs.png" alt="Valor absoluto del gradiente Sobel en RG"></div>
+					<div class="panel code">
+						<pre data-hl="5"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 gradient = sobel_gradient(input.uv);
+
+    float2 color = abs(gradient);
+
+    return float4(color, 0.0, 1.0);
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- 2D vector as angle and magnitude -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/flow_blur_hl.png" alt="Dirección del gradiente como tono y magnitud como luminosidad"></div>
+					<div class="panel code">
+						<pre data-hl="5-10"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 gradient = sobel_gradient(input.uv);
+
+    float hue = frac(atan2(gradient.y, gradient.x) / (2.0 * PI));
+    float lightness = saturate(0.5 * length(gradient));
+
+    float3 hue_color = saturate(abs(frac(hue + float3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0);
+    float chroma = 1.0 - abs(2.0 * lightness - 1.0);
+    float3 color = lightness + chroma * (hue_color - 0.5);
+
+    return float4(color, 1.0);
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- 3D vector as color -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="vec3_norm"></canvas></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float3 Vector3ToColor(float3 v) {
+    return normalize(v) * 0.5 + 0.5;
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- 3D vector as color · abs -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="vec3_abs"></canvas></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float3 Vector3ToColorAbs(float3 v) {
+    return abs(normalize(v));
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Discrete values · palette -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/palette.png" alt="Objetos de la escena coloreados por ID con una paleta"></div>
+					<div class="panel code">
+						<pre data-hl="5-6"><code class="language-cpp" data-trim><script type="text/template">
+float4 _Colors[10];
+
+float4 Frag(v2f input) : SV_Target
+{
+    int color_index = _Id % _ColorCount;
+    float3 color = _Colors[color_index].rgb;
+
+    return float4(color, 1);
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] With only four colors, neighbouring IDs often share a color.
+				</aside>
+			</section>
+
+			<!-- Discrete values · hashing -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/hash.png" alt="Objetos de la escena coloreados por ID con un hash"></div>
+					<div class="panel code">
+						<pre data-hl="14-16"><code class="language-cpp" data-trim><script type="text/template">
+uint3 hash(uint3 value)
+{
+    value ^= value >> 16;
+    value *= 0x7feb352du;
+    value ^= value >> 15;
+    value *= 0x846ca68bu;
+    value ^= value >> 16;
+
+    return value;
+}
+
+float4 Frag(v2f input) : SV_Target
+{
+    uint color_index = _Id % _ColorCount;
+    uint3 hashed = hash(color_index + uint3(0u, 0x68e31da4u, 0xb5297a4du));
+    float3 color = float3(hashed >> 8) / 16777215.0;
+
+    return float4(color, 1);
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Discrete values · golden ratio · 2 IDs -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/golden2.png" alt="Escena coloreada con 2 IDs usando la razón áurea"></div>
+					<div class="panel code">
+						<pre data-hl="3-5"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    int color_index = _Id % _ColorCount;
+    float t = frac(_ColorOffset + GOLDEN_RATIO * color_index);
+    float3 color = tex2D(_GradientTex, float2(t, 0.5)).rgb;
+
+    return float4(color, 1);
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] Each new ID lands in the biggest gap left by the previous ones, so neighbouring IDs always
+					get distinct colors.
+				</aside>
+			</section>
+
+			<!-- Discrete values · golden ratio · 3 IDs -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/golden3.png" alt="Escena coloreada con 3 IDs usando la razón áurea"></div>
+					<div class="panel code">
+						<pre data-hl="3-5"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    int color_index = _Id % _ColorCount;
+    float t = frac(_ColorOffset + GOLDEN_RATIO * color_index);
+    float3 color = tex2D(_GradientTex, float2(t, 0.5)).rgb;
+
+    return float4(color, 1);
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Discrete values · golden ratio · 4 IDs -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/golden4.png" alt="Escena coloreada con 4 IDs usando la razón áurea"></div>
+					<div class="panel code">
+						<pre data-hl="3-5"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    int color_index = _Id % _ColorCount;
+    float t = frac(_ColorOffset + GOLDEN_RATIO * color_index);
+    float3 color = tex2D(_GradientTex, float2(t, 0.5)).rgb;
+
+    return float4(color, 1);
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Discrete values · golden ratio · 5 IDs -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/golden5.png" alt="Escena coloreada con 5 IDs usando la razón áurea"></div>
+					<div class="panel code">
+						<pre data-hl="3-5"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    int color_index = _Id % _ColorCount;
+    float t = frac(_ColorOffset + GOLDEN_RATIO * color_index);
+    float3 color = tex2D(_GradientTex, float2(t, 0.5)).rgb;
+
+    return float4(color, 1);
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Rendering actual digits -->
+			<section>
+				<div class="frame one">
+					<div class="media"><canvas data-demo="digits_probe"></canvas>
+						<div class="credit">shadertoy.com/view/4sBSWW</div>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] The probe moves over the field and prints the value under it.
+				</aside>
+			</section>
+
+			<!-- Digits · code -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/digits.png" alt="Valor impreso con dígitos en la esquina de la escena"></div>
+					<div class="panel code">
+						<pre data-hl="6|53-55|59-61"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 uv = input.uv;
+    float angle_in_turns = ...;
+
+    DEBUG_DISPLAY_FLOAT(uv, angle_in_turns, 0);
+
+    ...
+}
+
+static const float digit_bitmaps[10] =
+{
+    480599.0, 139810.0, 476951.0, 476999.0, 350020.0, 464711.0, 464727.0, 476228.0, 481111.0, 481095.0
+};
+
+float print_value(float2 string_coords, float value, float integer_digits, float decimal_places)
+{
+    if (string_coords.y < 0.0 || string_coords.y >= 1.0)
+    {
+        return 0.0;
+    }
+
+    bool is_negative = value < 0.0;
+    value = abs(value);
+
+    float biggest_index = max(floor(log10(value)), 0.0);
+    float digit_index = integer_digits - floor(string_coords.x);
+    float character_bitmap = 0.0;
+
+    if (digit_index > -decimal_places - 1.01)
+    {
+        if (digit_index > biggest_index)
+        {
+            if (is_negative && digit_index < biggest_index + 1.5)
+            {
+                character_bitmap = MINUS_BITMAP;
+            }
+        }
+        else if (digit_index == -1.0)
+        {
+            character_bitmap = DECIMAL_POINT_BITMAP;
+        }
+        else
+        {
+            float reduced_value = value;
+
+            if (digit_index < 0.0)
+            {
+                reduced_value = frac(value);
+                digit_index += 1.0;
+            }
+
+            float digit_value = reduced_value / pow(10.0, digit_index);
+            int digit = (int)floor(fmod(digit_value, 10.0));
+            character_bitmap = digit_bitmaps[digit];
+        }
+    }
+
+    float bit_index = floor(frac(string_coords.x) * 4.0) + floor(string_coords.y * 5.0) * 4.0;
+
+    return floor(fmod(character_bitmap / pow(2.0, bit_index), 2.0));
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] Each digit is a 4×5 bitmap stored in a float; the highlighted lines pick the digit and then
+					the bit for the current pixel.
+				</aside>
+			</section>
+
+			<!-- Digits in Shader Graph -->
+			<section>
+				<div class="frame one">
+					<div class="media contain"><img src="Unity%20Talk/Unity%20Talk/graphics/shader_graph_example.PNG" alt="Shader Graph con un Custom Function node que imprime valores"></div>
+				</div>
+				<aside class="notes">
+					[Herman] Link: gist.github.com/aras-p/657a4947bb8a4549fda53a84bb91fb25
+				</aside>
+			</section>
+
+			<!-- ============ 4. CONTROL DE FLUJO ============ -->
+			<!-- Primero: ¿llega algo a la pantalla? -->
+			<section data-section="Control de flujo">
+				<div class="frame">
+					<div class="media"><img src="img/pipeline_red.png" alt="Esfera roja plana"></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+return float4(1, 0, 0, 1);
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] Una cosa importante antes de seguir: siempre debemos estar seguros de que la pipeline de
+					renderizado está funcionando, para no cambiar código de GPU cuando el problema está en la CPU. Para
+					eso podemos devolver un color plano y así saber que el retorno del shader está llegando.
+				</aside>
+			</section>
+
+			<!-- Early return -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="early_return"></canvas></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float4 frag (v2f i) : SV_Target {
+    float shadow = SampleShadow(i);
+
+    if (shadow < 0.5)
+        return float4(1, 0, 1, 1);
+
+    return Shade(i, shadow);
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] Ese retorno puede ser usado en otras ocasiones, por ejemplo dentro de un if como early return
+					para saber que el código llega hasta allí.
+				</aside>
+			</section>
+
+			<!-- Un color por rama -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="branch_colors"></canvas></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+if (ndotl > 0.5)
+    return float4(1, 0, 0, 1);
+else if (ndotl > 0)
+    return float4(0, 1, 0, 1);
+else
+    return float4(0, 0, 1, 1);
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] También podemos poner colores por ramas para saber cuál se ejecuta.
+				</aside>
+			</section>
+
+			<!-- Vistas de debug con #define -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="vec3_norm"></canvas></div>
+					<div class="panel code">
+						<pre data-hl="1|6-8"><code class="language-cpp" data-trim><script type="text/template">
+#define DEBUG_NORMALS
+
+float4 frag (v2f i) : SV_Target {
+    float3 n = normalize(i.normal);
+
+#if defined(DEBUG_NORMALS)
+    return float4(n * 0.5 + 0.5, 1);
+#endif
+
+    return Shade(i, n);
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] Por último podemos usar las definiciones de preprocesador para habilitar y deshabilitar
+					secciones completas de código.
+				</aside>
+			</section>
+
+			<!-- Vistas de debug en el inspector -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="debug_views"></canvas>
+						<div class="labels n4 top">
+							<span>None</span><span>Albedo</span><span>Normal</span><span>Shadow</span>
+						</div>
+					</div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+[KeywordEnum(None, Albedo, Normal, Shadow)]
+_Debug ("Debug View", Float) = 0
+
+#pragma shader_feature_local \
+    _DEBUG_NONE _DEBUG_ALBEDO \
+    _DEBUG_NORMAL _DEBUG_SHADOW
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] Con shader_feature_local y un KeywordEnum podemos cambiar la vista de debug directamente
+					desde el material, sin tocar el código. La demo recorre las cuatro vistas.
+				</aside>
+			</section>
+
+			<!-- ============ 5. MODOS DE VISTA ============ -->
+			<!-- Antes y después con lerp -->
+			<section data-section="Modos de vista">
+				<div class="frame">
+					<div class="media"><canvas data-demo="lerp"></canvas></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float4 original = tex2D(_MainTex, uv);
+float4 effect = ApplyEffect(original);
+
+return lerp(original, effect, _Blend);
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] También podemos hacer uso de la función lerp para ver un antes y después de la imagen, con un
+					parámetro de intensidad de 0 a 1. La barra de abajo muestra el valor de _Blend.
+				</aside>
+			</section>
+
+			<!-- Canales y swizzling -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="depth_rrr"></canvas></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float3 DepthToColor(float rawDepth) {
+    return Linear01Depth(rawDepth).rrr;
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] Ver la imagen por canales RGBA y hacer swizzling para ver floats como color.
+				</aside>
+			</section>
+
+			<!-- Parametrizar todo -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="box_blur"></canvas></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+_Radius ("Radius", Range(0, 20)) = 4
+_Spacing ("Spacing", Range(0.5, 4)) = 1
+_Intensity ("Intensity", Range(0, 1)) = 1
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] La idea es parametrizar lo más posible para entender cómo se comporta cada parte del código.
+					Luego estos parámetros pueden ser removidos. En la demo, la barra muestra _Radius.
+				</aside>
+			</section>
+
+			<!-- ============ 6. EXAGERAR ============ -->
+			<!-- Exagerar: el blur -->
+			<section data-section="Exagerar">
+				<div class="frame">
+					<div class="media"><canvas data-demo="blur_r" data-param="2"></canvas>
+						<div class="cap">Radio 2</div>
+					</div>
+					<div class="media"><canvas data-demo="blur_r_sin"></canvas>
+						<div class="cap">Radio con sin(t)</div>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] Otra cosa que podemos hacer para depurar es exagerar los efectos que estamos aplicando, como
+					ponerles un blur muy fuerte para descubrir artefactos. El radio de la derecha oscila con un
+					seno entre 2 y 40: con radios grandes el muestreo deja copias fantasma.
+				</aside>
+			</section>
+
+			<!-- Exagerar: el normal map -->
+			<section>
+				<div class="frame">
+					<div class="media stack">
+						<div class="cell"><canvas data-demo="normal_strength" data-param="1"></canvas>
+							<div class="cap">× 1</div>
+						</div>
+						<div class="cell"><canvas data-demo="normal_strength" data-param="10"></canvas>
+							<div class="cap">× 10</div>
+						</div>
+					</div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float3 Exaggerate(float3 n, float k) {
+    n.xy *= k;
+    return normalize(n);
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] O escalar números para ver cómo se comportan en casos extremos. ¿Está hundido o elevado?
+				</aside>
+			</section>
+
+			<!-- Comprimir con log -->
+			<section>
+				<div class="frame">
+					<div class="media stack">
+						<div class="cell"><canvas data-demo="hdr_view" data-param="0"></canvas>
+							<div class="cap">saturate(hdr)</div>
+						</div>
+						<div class="cell"><canvas data-demo="hdr_view" data-param="1"></canvas>
+							<div class="cap">LogView(hdr)</div>
+						</div>
+					</div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float3 LogView(float3 hdr) {
+    return log2(hdr + 1) / 3;
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] Finalmente podemos usar exp y log para visualizar versiones atenuadas de nuestro efecto. A la
+					izquierda el sol se ve como un disco blanco; a la derecha se ve cómo cambia su intensidad.
+				</aside>
+			</section>
+
+			<!-- ============ 7. ANIMACIÓN Y TIEMPO ============ -->
+			<!-- Where should the threshold be? -->
+			<section data-section="Animation and time">
+				<div class="frame">
+					<div class="media"><img src="img/threshold_black.png" alt="Imagen casi completamente negra"
+							style="--pos: 94% 50%"></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float Threshold(float3 color, float t) {
+    return step(t, Luminance(color));
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] Using static values often hides issues, so seeing how a shader behaves with a spread of
+					values is very valuable. For example, you may not know where a good place for a threshold is, or how
+					the shader behaves in extremes. The simplest way is to allow the user to change the value in the
+					inspector or with in-game UI.
+				</aside>
+			</section>
+
+			<!-- Animate it -->
+			<section>
+				<div class="frame one">
+					<div class="media"><canvas data-demo="threshold_anim"></canvas></div>
+				</div>
+				<aside class="notes">
+					[Herman] In some cases you may not have your hands free to adjust the slider, in which case you can
+					animate it using the time variable instead. The orange mark at the bottom shows the current
+					threshold.
+				</aside>
+			</section>
+
+			<!-- Animate it with _Time -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="threshold_anim"></canvas></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float Sweep(float time, float seconds) {
+    return frac(time / seconds);
+}
+
+float Pulse(float time) {
+    return sin(time) * 0.5 + 0.5;
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- ============ 8. DEBUG IMAGES ============ -->
+			<!-- UV grids -->
+			<section data-section="Debug images">
+				<div class="frame one">
+					<div class="media"><canvas data-demo="uv_grid_scene"></canvas></div>
+				</div>
+				<aside class="notes">
+					[Herman] A very useful strategy is to use specially designed debug images to make it easier to see
+					what is going on. An example you may know well is these UV map grids that make it easy to see the UV
+					mapping of a mesh. It is also useful to have tools that can toggle debug textures at runtime.
+				</aside>
+			</section>
+
+			<!-- UV gradients -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="uv_gradient_scene"></canvas></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float3 UVToColor(float2 uv) {
+    return float3(uv, 0);
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] Gradients are also super useful, and moreover can be computed.
+				</aside>
+			</section>
+
+			<!-- Gradient · quantized -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/gradient.png" alt="Gradiente de negro a blanco">
+						<div class="cap">Input</div>
+					</div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/quantized.png" alt="Gradiente cuantizado">
+						<div class="cap">Output</div>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] Besides using debug images for textures, you can also use them for fullscreen effects to
+					replace the scene. For example, in a quantization filter, you can use gradients to see whether the
+					bands are evenly spaced.
+				</aside>
+			</section>
+
+			<!-- Gradient · dithering -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/gradient.png" alt="Gradiente de negro a blanco">
+						<div class="cap">Input</div>
+					</div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/dithered.png" alt="Gradiente con dithering">
+						<div class="cap">Output</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Gradient · hatching -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/gradient.png" alt="Gradiente de negro a blanco">
+						<div class="cap">Input</div>
+					</div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/hatching.png" alt="Gradiente con hatching">
+						<div class="cap">Output</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- HLS map · quantized -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="in_hls"></canvas>
+						<div class="cap">Input</div>
+					</div>
+					<div class="media"><canvas data-demo="quantize_hls"></canvas>
+						<div class="cap">Output</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- HLS map · dithering -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="in_hls"></canvas>
+						<div class="cap">Input</div>
+					</div>
+					<div class="media"><canvas data-demo="dither_hls"></canvas>
+						<div class="cap">Output</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- HLS map · hatching -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/hsl.png" alt="Mapa HSL">
+						<div class="cap">Input</div>
+					</div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/hsl_hatching.png" alt="Mapa HSL con hatching">
+						<div class="cap">Output</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Point · max filter -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="in_point"></canvas>
+						<div class="cap">Input</div>
+					</div>
+					<div class="media"><canvas data-demo="max_point"></canvas>
+						<div class="cap">Output</div>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] The general idea is to use a texture where it is easy to understand how it should look
+					under the transformations at hand. For example, to see that a separated max filter works correctly,
+					you can use a white point on a black background: the result should look like your kernel.
+				</aside>
+			</section>
+
+			<!-- RGBW points · max filter -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/rgb_dots.png" alt="Puntos blanco, rojo, verde y azul">
+						<div class="cap">Input</div>
+					</div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/rgb_dots_max.png" alt="Puntos tras un filtro max">
+						<div class="cap">Output</div>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] To see that each channel is correct, you can use a red, green and blue point. Where the
+					squares overlap you should see the channels combine.
+				</aside>
+			</section>
+
+			<!-- RGBW points · box vs gaussian -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/rgb_dots_box.png" alt="Puntos tras un box blur">
+						<div class="cap">Box</div>
+					</div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/rgb_dots_gaussian.png" alt="Puntos tras un blur gaussiano">
+						<div class="cap">Gaussian</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Color grid · hue map -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="in_colorgrid"></canvas>
+						<div class="cap">Input</div>
+					</div>
+					<div class="media"><canvas data-demo="huemap_grid"></canvas>
+						<div class="cap">Output</div>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] To test correct color transformations, use a grid of colors that includes primaries,
+					secondaries, and a variety of tertiary colors. Grays must stay gray.
+				</aside>
+			</section>
+
+			<!-- Color grid · dithered -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/color_grid.png" alt="Grilla de colores">
+						<div class="cap">Input</div>
+					</div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/color_grid_dithered.png" alt="Grilla de colores con dithering">
+						<div class="cap">Output</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Color grid · tri-tone map -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/color_grid.png" alt="Grilla de colores">
+						<div class="cap">Input</div>
+					</div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/color_grid_tritone.png" alt="Grilla de colores con mapa tri-tono">
+						<div class="cap">Output</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Polar grid · blur -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/polar_grid_h.png" alt="Grilla polar tras el pase horizontal del blur">
+						<div class="cap">Horizontal</div>
+					</div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/polar_grid_v.png" alt="Grilla polar tras el pase vertical del blur">
+						<div class="cap">Vertical</div>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] A polar grid is useful for checking directional effects, for example the vertical and
+					horizontal passes of a separable blur.
+				</aside>
+			</section>
+
+			<!-- Debug shapes -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="shapes_scene"></canvas></div>
+					<div class="panel text">
+						<ul class="shape-list">
+							<li>Primitives</li>
+							<li>Thin cylinders</li>
+							<li>Plants</li>
+							<li>High detail</li>
+							<li>Outline shapes</li>
+						</ul>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] Primitives: cube, sphere, pyramid, donut. Thin cylinders, plants, high-detail (character),
+					and special shapes for outlines. Using debug shapes is also useful to see rendering artefacts. Here
+					with dithered shading and an outline effect.
+				</aside>
+			</section>
+
+			<!-- Debug shapes · Sobel outline -->
+			<section>
+				<div class="frame one">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/outline_sobel.png" alt="Formas de debug con un outline Sobel">
+						<div class="cap">Outline · Sobel</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Debug shapes · max outline -->
+			<section>
+				<div class="frame one">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/outline_max.png" alt="Formas de debug con un outline por filtro max">
+						<div class="cap">Outline · Max</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Shapes for outlines -->
+			<section>
+				<div class="frame one">
+					<div class="media"><canvas data-demo="outline_shapes"></canvas></div>
+				</div>
+				<aside class="notes">
+					[Herman] Thin plates, concave corners, intersecting spheres, stairs and thin rings: each one breaks
+					a different kind of outline detection.
+				</aside>
+			</section>
+
+			<!-- ============ 9. TOOLS ============ -->
+			<!-- Frame Debugger -->
+			<section data-section="Tools">
+				<div class="frame one">
+					<div class="media"><video src="Unity%20Talk/Unity%20Talk/graphics/frame_debugger.mp4" data-autoplay loop muted playsinline></video></div>
+				</div>
+				<aside class="notes">
+					[Herman] In complex setups, the final render may involve several passes and multiple shaders. In
+					this case you want to see that the right things happen, and in the right order. Unity’s Frame
+					Debugger is the tool for this. It allows you to see the output of different passes.
+				</aside>
+			</section>
+
+			<!-- Inspecting input maps -->
+			<section>
+				<div class="frame one">
+					<div class="media"><canvas data-demo="shadow_map"></canvas>
+						<div class="labels n2"><span>Camera</span><span>Shadow map</span></div>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] The Frame Debugger also shows the different maps that serve as input for shaders, such as
+					the shadow map.
+				</aside>
+			</section>
+
+			<!-- RenderDoc -->
+			<section>
+				<div class="frame one">
+					<div class="media ph"><span>Stepping through a shader line by line in RenderDoc</span></div>
+				</div>
+				<aside class="notes">
+					[Herman] You can also use RenderDoc to examine values line by line in a shader.
+				</aside>
+			</section>
+
+			<!-- Plot your equations -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="graph_smoothstep"></canvas></div>
+					<div class="panel code">
+						<pre class="eq">y = smoothstep(0.2, 0.8, x)
+
+<span class="dim">// graphtoy.com</span></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] It is very useful to plot the equations you use in your shaders. This makes it easy to
+					visualize what the math does, and to check your assumptions.
+				</aside>
+			</section>
+
+			<!-- Plot your equations (2) -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="graph_falloff"></canvas></div>
+					<div class="panel code">
+						<pre class="eq">y = 1 / (1 + k·x²)
+
+<span class="k1">k = 1</span>
+<span class="k4">k = 4</span>
+<span class="k16">k = 16</span></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Plot inside the shader -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="plot_shader"></canvas></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float Plot(float2 uv, float y, float w) {
+    float d  = abs(uv.y - y);
+    float aa = fwidth(uv.y - y);
+    float lo = w - aa;
+    float hi = w + aa;
+    return 1 - smoothstep(lo, hi, d);
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] Occasionally, it is useful to plot the graph directly in the shader itself.
+				</aside>
+			</section>
+
+			<!-- ============ 10. TRUCOS DE CÓDIGO ============ -->
+			<!-- Little code tricks -->
+			<section>
+				<div class="frame one">
+					<div class="panel text">
+						<h1 style="font-size:150px">Little code tricks</h1>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] Ahora, antes de terminar, quisiera dar unos trucos rápidos para hacer más fácil el desarrollo
+					de shaders y ahorrar algo de tiempo.
+				</aside>
+			</section>
+
+			<!-- Constantes antes que uniforms -->
+			<section>
+				<div class="frame one">
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+static const float Exposure = 1.5;
+  </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] Usa constantes antes que uniforms. Agregar un uniform a la pipeline es costoso en tiempo e
+					implica también modificar la parte de CPU. Puedes aprovechar el hot reloading para cambiar la
+					variable, o el tiempo como vimos antes.
+				</aside>
+			</section>
+
+			<!-- Colores fijos y gradientes primero -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="debug_albedo"></canvas></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float3 DebugAlbedo(float2 uv) {
+    float3 a = float3(1, 0.5, 0);
+    float3 b = float3(0.1, 0.5, 1);
+    return lerp(a, b, uv.x);
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] Usar colores fijos, gradientes o texturas de debug como las de mapas UV, para primero testear
+					que el espacio y las zonas objetivo están como esperas.
+				</aside>
+			</section>
+
+			<!-- Ondas de seno en vez de ruido -->
+			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="sine_vs_noise"></canvas>
+						<div class="labels rows"><span>Ruido</span><span>Seno</span></div>
+					</div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float SineNoise(float x, float f) {
+    float s = sin(x * f * 6.2832);
+    return s * 0.5 + 0.5;
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Sara] Usar ondas sinusoidales deterministas con la misma frecuencia que un ruido, para no tener que
+					usar una textura o algoritmo de ruido durante el desarrollo. En la demo, arriba está el ruido y
+					abajo el seno con la misma frecuencia.
+				</aside>
+			</section>
+
+			<!-- ============ 11. OUTRO ============ -->
+			<!-- ¡Gracias! -->
+			<section>
+				<div class="frame">
+					<div class="media light">
+						<div class="qr">QR</div>
+					</div>
+					<div class="panel text">
+						<h1>¡Gracias!</h1>
+						<p class="names"><strong>Herman Tulleken</strong><br>YouTube · Asset Store</p>
+						<p class="names" style="margin-top:.8em"><strong>Sara San Martín</strong><br>Links</p>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] Thank you for coming to our talk! If you are interested in these topics, please take a look
+					at my YouTube channel where I explain how to implement post effects, with more tricks on how to
+					debug issues. You can also check out some of the post effects we sell in the Asset Store.
+					[Sara] (Cierre de Sara.)
+				</aside>
+			</section>
+
+		</div>
+	</div>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/notes/notes.min.js"></script>
+	<script src="shader-demos.js"></script>
+	<script>
+		// ---- code size: the less code, the bigger the font -------------------------------------------
+		// JetBrains Mono advances 0.6em per column; panels are 960px wide (half a slide) or 1920px
+		// (.frame.one). Padding values mirror the .panel CSS above.
+		const CH = 0.6, LH = 1.5;
+
+		function codeLines(pre) {
+			const tpl = pre.querySelector('script[type="text/template"]');
+			const lines = (tpl ? tpl.textContent : pre.textContent).replace(/\r/g, '').split('\n');
+			while (lines.length && !lines[0].trim()) lines.shift();
+			while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+			const indent = Math.min(...lines.filter(l => l.trim()).map(l => l.match(/^ */)[0].length));
+			return lines.map(l => l.slice(indent));
+		}
+
+		function fitCode() {
+			document.querySelectorAll('.panel.code').forEach(panel => {
+				const wide = panel.closest('.frame').classList.contains('one');
+				const lines = codeLines(panel.querySelector('pre'));
+				const w = (wide ? 1920 : 960) - 2 * (wide ? 160 : 56);
+				const h = 1080 - 2 * 84;
+				const cols = Math.max(...lines.map(l => l.length));
+				const fs = Math.min(wide ? 100 : 60, w / (cols * CH), h / (lines.length * LH));
+				panel.style.setProperty('--fs', fs.toFixed(1) + 'px');
+			});
+		}
+
+		// ---- slide number inside each panel, like the reference ("20 / 63") ----------------------------
+		function numberSlides() {
+			const slides = document.querySelectorAll('.reveal .slides > section');
+			slides.forEach((s, i) => {
+				s.querySelectorAll('.panel').forEach(p => {
+					const n = document.createElement('div');
+					n.className = 'num';
+					n.textContent = (i + 1) + ' / ' + slides.length;
+					p.appendChild(n);
+				});
+			});
+		}
+
+		// ---- highlighted lines: <pre data-hl="1|6-8"> shows lines 1, then (next click) lines 6-8 --------
+		function rangeSet(spec) {
+			const set = new Set();
+			spec.split(',').forEach(part => {
+				const [a, b] = part.split('-').map(Number);
+				for (let i = a; i <= (b || a); i++) set.add(i);
+			});
+			return set;
+		}
+
+		// split highlighted html into lines, closing and reopening spans that cross a newline
+		// (e.g. a multi-line #define with "\" continuations)
+		function splitLines(html) {
+			const lines = [], open = [];
+			let cur = '';
+			html.split(/(<[^>]+>|\n)/).forEach(tok => {
+				if (tok === '\n') {
+					lines.push(cur + '</span>'.repeat(open.length));
+					cur = open.join('');
+				} else if (tok.startsWith('</')) {
+					open.pop();
+					cur += tok;
+				} else {
+					if (tok.startsWith('<')) open.push(tok);
+					cur += tok;
+				}
+			});
+			lines.push(cur);
+			return lines;
+		}
+
+		function initHighlights(deck) {
+			document.querySelectorAll('pre[data-hl]').forEach(pre => {
+				const code = pre.querySelector('code');
+				const steps = pre.dataset.hl.split('|').map(rangeSet);
+				const section = pre.closest('section');
+				code.innerHTML = splitLines(code.innerHTML)
+					.map(l => '<span class="ln">' + (l.replace(/<[^>]+>/g, '') ? l : l + ' ') + '</span>').join('');
+				const rows = Array.from(code.querySelectorAll('.ln'));
+				for (let i = 1; i < steps.length; i++) {
+					const f = document.createElement('span');
+					f.className = 'fragment';
+					section.appendChild(f);
+				}
+				const sync = () => {
+					const step = Math.min(section.querySelectorAll('.fragment.visible:not(.section-title)').length, steps.length - 1);
+					rows.forEach((r, i) => r.classList.toggle('hl', steps[step].has(i + 1)));
+				};
+				sync();
+				['slidechanged', 'fragmentshown', 'fragmenthidden'].forEach(e => deck.on(e, sync));
+			});
+			deck.sync();
+		}
+
+		// ---- section titles: <section data-section="Encodings"> gets a big h1 over the slide ---------
+		// It is a fade-out fragment placed first, so it shows on entering the section and the next
+		// click hides it; coming back from a later slide skips it.
+		function addSectionTitles() {
+			document.querySelectorAll('.reveal .slides > section[data-section]').forEach(s => {
+				const t = document.createElement('div');
+				t.className = 'section-title fragment fade-out';
+				t.dataset.fragmentIndex = '0';
+				const h = document.createElement('h1');
+				h.textContent = s.dataset.section;
+				t.appendChild(h);
+				s.appendChild(t);
+			});
+		}
+
+		fitCode();
+		numberSlides();
+		addSectionTitles();
+
+		Reveal.initialize({
+			width: 1920,
+			height: 1080,
+			margin: 0,
+			minScale: 0.1,
+			maxScale: 3,
+			center: false,
+			controls: false,
+			progress: false,
+			slideNumber: false,
+			hash: true,
+			transition: 'slide',
+			backgroundTransition: 'slide',
+			transitionSpeed: 'default',
+			plugins: [RevealHighlight, RevealNotes]
+		}).then(() => {
+			initHighlights(Reveal);
+			ShaderDemos.start(() => Reveal.getCurrentSlide());
+		});
+	</script>
+</body>
+
+</html>

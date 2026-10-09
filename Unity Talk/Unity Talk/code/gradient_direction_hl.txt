@@ -1,0 +1,15 @@
+float4 Frag(v2f input) : SV_Target
+{
+	float2 gradient = sobel_gradient(input.uv);
+
+// HIGHLIGHT_START
+	float hue = frac(atan2(gradient.y, gradient.x) / (2.0 * PI));
+	float lightness = saturate(0.5 * length(gradient));
+
+	float3 hue_color = saturate(abs(frac(hue + float3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0);
+	float chroma = 1.0 - abs(2.0 * lightness - 1.0);
+	float3 color = lightness + chroma * (hue_color - 0.5);
+// HIGHLIGHT_END
+
+	return float4(color, 1.0);
+}
