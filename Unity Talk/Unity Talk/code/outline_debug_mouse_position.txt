@@ -3,22 +3,18 @@ float4 Frag(v2f input) : SV_Target
 	float2 uv = input.uv;
 	float2 offset = _MainTex_TexelSize.xy * _JumpSize;
 
-	float3 bottom_left  = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
-	float3 bottom       = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
-	float3 bottom_right = tex2D(_MainTex, uv + offset * float2( 1, -1)).rgb;
-	float3 left         = tex2D(_MainTex, uv + offset * float2(-1,  0)).rgb;
-	float3 right        = tex2D(_MainTex, uv + offset * float2( 1,  0)).rgb;
-	float3 top_left     = tex2D(_MainTex, uv + offset * float2(-1,  1)).rgb;
-	float3 top          = tex2D(_MainTex, uv + offset * float2( 0,  1)).rgb;
-	float3 top_right    = tex2D(_MainTex, uv + offset * float2( 1,  1)).rgb;
+	float3 pixel00 = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
+	float3 pixel10 = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
 
-	float3 gradient_x = (top_right + 2 * right + bottom_right) - (top_left + 2 * left + bottom_left);
-	float3 gradient_y = (top_left + 2 * top + top_right) - (bottom_left + 2 * bottom + bottom_right);
+	//etc...
+
+	float3 gradient_x = (pixel22 + 2 * pixel21 + pixel20) - (pixel02 + 2 * pixel01 + pixel00);
+	float3 gradient_y = (pixel02 + 2 * pixel12 + pixel22) - (pixel00 + 2 * pixel10 + pixel20);
 
 	float edge = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
 
 // HIGHLIGHT_START
-#if TOOL_SHOW_EDGE
+#if TOOL_SHOW_GRADIENT
 	float2 pixel = uv * _MainTex_TexelSize.zw;
 	float2 mouse_pixel = _DebugMousePosition.xy * _MainTex_TexelSize.zw;
 

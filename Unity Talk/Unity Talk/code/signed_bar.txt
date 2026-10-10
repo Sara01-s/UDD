@@ -1,35 +1,13 @@
-float4 Frag(v2f input) : SV_Target
-{
-	float2 uv = input.uv;
-	float slope = ...;
-
-// HIGHLIGHT_START
-	DEBUG_SIGNED_BAR(uv, slope, 0);
-// HIGHLIGHT_END
-
-	...
-}
-
-#define DEBUG_SIGNED_BAR(uv, value, row) \
-	{ \
-		float4 debug_color; \
-		if (debug_signed_bar((uv), (value), (row), debug_color)) \
-		{ \
-			return debug_color; \
-		} \
-	}
-
 bool debug_signed_bar(float2 uv, float value, int row, out float4 color)
 {
 	float2 cell_uv;
 	color = 0;
 
-	if (!debug_cell(uv, row, 1, 0, 1, cell_uv))
+	if (!debug_cell(uv, row, 1, 0, 1, cell_uv)) 
 	{
 		return false;
 	}
 
-// HIGHLIGHT_START
 	float position = cell_uv.x * 2.0 - 1.0;
 	float clamped_value = clamp(value, -1.0, 1.0);
 
@@ -38,23 +16,7 @@ bool debug_signed_bar(float2 uv, float value, int row, out float4 color)
 		: position < 0.0 && position >= clamped_value;
 
 	float3 bar_color = abs(value) <= 1.0 ? FOREGROUND_COLOR : OUT_OF_RANGE_COLOR;
-// HIGHLIGHT_END
 
 	color = float4(is_on_bar ? bar_color : BACKGROUND_COLOR, 1);
 	return true;
-}
-
-bool debug_cell(float2 uv, int row, int row_span, int column, int column_count, out float2 cell_uv)
-{
-	float row_size = _ScreenParams.y / ROW_COUNT;
-	float2 pixel = float2(uv.x, 1.0 - uv.y) * _ScreenParams.xy;
-
-	float cell_width = REGION_WIDTH_IN_ROWS * row_size / column_count;
-	float2 cell_min = float2(column * cell_width, (row + 1) * row_size);
-	float2 cell_size = float2(cell_width, row_span * row_size);
-
-	float2 local = (pixel - cell_min) / cell_size;
-	cell_uv = float2(local.x, 1.0 - local.y);
-
-	return all(local >= 0.0) && all(local < 1.0);
 }

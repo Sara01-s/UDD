@@ -1,15 +1,3 @@
-float4 Frag(v2f input) : SV_Target
-{
-	float2 uv = input.uv;
-	float angle_in_turns = ...;
-
-// HIGHLIGHT_START
-	DEBUG_DISPLAY_FLOAT(uv, angle_in_turns, 0);
-// HIGHLIGHT_END
-
-	...
-}
-
 static const float digit_bitmaps[10] =
 {
 	480599.0, 139810.0, 476951.0, 476999.0, 350020.0, 464711.0, 464727.0, 476228.0, 481111.0, 481095.0
@@ -27,42 +15,41 @@ float print_value(float2 string_coords, float value, float integer_digits, float
 
 	float biggest_index = max(floor(log10(value)), 0.0);
 	float digit_index = integer_digits - floor(string_coords.x);
-	float character_bitmap = 0.0;
 
-	if (digit_index > -decimal_places - 1.01)
+	if (digit_index <= -decimal_places - 1.01)
 	{
-		if (digit_index > biggest_index)
-		{
-			if (is_negative && digit_index < biggest_index + 1.5)
-			{
-				character_bitmap = MINUS_BITMAP;
-			}
-		}
-		else if (digit_index == -1.0)
-		{
-			character_bitmap = DECIMAL_POINT_BITMAP;
-		}
-		else
-		{
-			float reduced_value = value;
-
-			if (digit_index < 0.0)
-			{
-				reduced_value = frac(value);
-				digit_index += 1.0;
-			}
-
-// HIGHLIGHT_START
-			float digit_value = reduced_value / pow(10.0, digit_index);
-			int digit = (int)floor(fmod(digit_value, 10.0));
-			character_bitmap = digit_bitmaps[digit];
-// HIGHLIGHT_END
-		}
+		return 0.0;
 	}
 
-// HIGHLIGHT_START
+	float character_bitmap = 0.0;
+
+	if (digit_index > biggest_index)
+	{
+		if (is_negative && digit_index < biggest_index + 1.5)
+		{
+			character_bitmap = MINUS_BITMAP;
+		}
+	}
+	else if (digit_index == -1.0)
+	{
+		character_bitmap = DECIMAL_POINT_BITMAP;
+	}
+	else
+	{
+		float reduced_value = value;
+
+		if (digit_index < 0.0)
+		{
+			reduced_value = frac(value);
+			digit_index += 1.0;
+		}
+
+		float digit_value = reduced_value / pow(10.0, digit_index);
+		int digit = (int)floor(fmod(digit_value, 10.0));
+		character_bitmap = digit_bitmaps[digit];
+	}
+
 	float bit_index = floor(frac(string_coords.x) * 4.0) + floor(string_coords.y * 5.0) * 4.0;
 
 	return floor(fmod(character_bitmap / pow(2.0, bit_index), 2.0));
-// HIGHLIGHT_END
 }

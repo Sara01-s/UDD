@@ -124,6 +124,10 @@
 			background: #202020;
 		}
 
+		.media.contain.indigo {
+			background: var(--indigo);
+		}
+
 		.media.swatches {
 			display: flex;
 		}
@@ -265,11 +269,59 @@
 			position: absolute;
 			right: 72px;
 			bottom: 30px;
+			z-index: 5;
 			font-size: 34px;
 			font-weight: 500;
 			line-height: 1;
 			font-variant-numeric: tabular-nums;
-			color: rgba(255, 255, 255, 0.5);
+			color: rgba(255, 255, 255, 0.6);
+			pointer-events: none;
+		}
+
+		body.hide-nums .num {
+			display: none;
+		}
+
+		/* key help (F1) */
+		#key-help {
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			z-index: 1000;
+			display: none;
+			transform: translate(-50%, -50%);
+			padding: 1.6em 2.2em;
+			border-radius: 18px;
+			background: var(--indigo);
+			box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+			color: #ffffff;
+			font: 18px/1.5 'Poppins', system-ui, sans-serif;
+		}
+
+		#key-help.open {
+			display: block;
+		}
+
+		#key-help h2 {
+			margin: 0 0 0.6em;
+			color: #ffffff;
+			font-size: 26px;
+		}
+
+		#key-help td {
+			padding: 0.2em 1.4em 0.2em 0;
+		}
+
+		#key-help td.k {
+			font-weight: 600;
+			color: var(--cyan);
+			white-space: nowrap;
+		}
+
+		#key-help p {
+			margin: 0.8em 0 0;
+			font-size: 14px;
+			color: rgba(255, 255, 255, 0.6);
 		}
 
 		.reveal .panel pre {
@@ -604,33 +656,29 @@ return float4(rgb, 1);
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_fullscreen.png" alt="Valor del detector de bordes mostrado a pantalla completa"></div>
 					<div class="panel code">
-						<pre data-hl="20-22"><code class="language-cpp" data-trim><script type="text/template">
+						<pre data-hl="16-18"><code class="language-cpp" data-trim><script type="text/template">
 float4 Frag(v2f input) : SV_Target
 {
     float2 uv = input.uv;
     float2 offset = _MainTex_TexelSize.xy * _JumpSize;
 
-    float3 bottom_left  = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
-    float3 bottom       = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
-    float3 bottom_right = tex2D(_MainTex, uv + offset * float2( 1, -1)).rgb;
-    float3 left         = tex2D(_MainTex, uv + offset * float2(-1,  0)).rgb;
-    float3 right        = tex2D(_MainTex, uv + offset * float2( 1,  0)).rgb;
-    float3 top_left     = tex2D(_MainTex, uv + offset * float2(-1,  1)).rgb;
-    float3 top          = tex2D(_MainTex, uv + offset * float2( 0,  1)).rgb;
-    float3 top_right    = tex2D(_MainTex, uv + offset * float2( 1,  1)).rgb;
+    float3 pixel00 = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
+    float3 pixel10 = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
+    // etc...
 
-    float3 gradient_x = (top_right + 2 * right + bottom_right) - (top_left + 2 * left + bottom_left);
-    float3 gradient_y = (top_left + 2 * top + top_right) - (bottom_left + 2 * bottom + bottom_right);
 
-    float edge = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
+    float3 gradient_x = (pixel22 + 2 * pixel21 + pixel20) - (pixel02 + 2 * pixel01 + pixel00);
+    float3 gradient_y = (pixel02 + 2 * pixel12 + pixel22) - (pixel00 + 2 * pixel10 + pixel20);
 
-#if TOOL_SHOW_EDGE
-    return float4(edge.xxx, 1);
+    float gradient = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
+
+#if TOOL_SHOW_GRADIENT
+    return float4(gradient.xxx, 1);
 #endif
 
     float4 color = tex2D(_MainTex, uv);
 
-    return edge > _Threshold ? _LineColor : color;
+    return gradient > _Threshold ? _LineColor : color;
 }
     </script></code></pre>
 					</div>
@@ -639,96 +687,6 @@ float4 Frag(v2f input) : SV_Target
 					[Herman] Sometimes it is ok to display the value per pixel, either of the screen or the triangle
 					mesh.
 				</aside>
-			</section>
-
-			<!-- Debug view on part of the screen · split screen -->
-			<section>
-				<div class="frame">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_half.png" alt="Mitad izquierda con el valor de bordes, mitad derecha con la escena"></div>
-					<div class="panel code">
-						<pre data-hl="20-25"><code class="language-cpp" data-trim><script type="text/template">
-float4 Frag(v2f input) : SV_Target
-{
-    float2 uv = input.uv;
-    float2 offset = _MainTex_TexelSize.xy * _JumpSize;
-
-    float3 bottom_left  = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
-    float3 bottom       = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
-    float3 bottom_right = tex2D(_MainTex, uv + offset * float2( 1, -1)).rgb;
-    float3 left         = tex2D(_MainTex, uv + offset * float2(-1,  0)).rgb;
-    float3 right        = tex2D(_MainTex, uv + offset * float2( 1,  0)).rgb;
-    float3 top_left     = tex2D(_MainTex, uv + offset * float2(-1,  1)).rgb;
-    float3 top          = tex2D(_MainTex, uv + offset * float2( 0,  1)).rgb;
-    float3 top_right    = tex2D(_MainTex, uv + offset * float2( 1,  1)).rgb;
-
-    float3 gradient_x = (top_right + 2 * right + bottom_right) - (top_left + 2 * left + bottom_left);
-    float3 gradient_y = (top_left + 2 * top + top_right) - (bottom_left + 2 * bottom + bottom_right);
-
-    float edge = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
-
-#if TOOL_SHOW_EDGE
-    if (uv.x < 0.5)
-    {
-        return float4(edge.xxx, 1);
-    }
-#endif
-
-    float4 color = tex2D(_MainTex, uv);
-
-    return edge > _Threshold ? _LineColor : color;
-}
-    </script></code></pre>
-					</div>
-				</div>
-				<aside class="notes">
-					[Herman] For post processes, you may want to limit it to a specific part of the screen so you can
-					see the effect, or display more than one value. Here the left half shows the raw edge-detection
-					value behind the outline effect.
-				</aside>
-			</section>
-
-			<!-- Debug view on part of the screen · around the mouse -->
-			<section>
-				<div class="frame">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_mouseposition.png" alt="Círculo alrededor del ratón que muestra el valor de bordes"></div>
-					<div class="panel code">
-						<pre data-hl="20-28"><code class="language-cpp" data-trim><script type="text/template">
-float4 Frag(v2f input) : SV_Target
-{
-    float2 uv = input.uv;
-    float2 offset = _MainTex_TexelSize.xy * _JumpSize;
-
-    float3 bottom_left  = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
-    float3 bottom       = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
-    float3 bottom_right = tex2D(_MainTex, uv + offset * float2( 1, -1)).rgb;
-    float3 left         = tex2D(_MainTex, uv + offset * float2(-1,  0)).rgb;
-    float3 right        = tex2D(_MainTex, uv + offset * float2( 1,  0)).rgb;
-    float3 top_left     = tex2D(_MainTex, uv + offset * float2(-1,  1)).rgb;
-    float3 top          = tex2D(_MainTex, uv + offset * float2( 0,  1)).rgb;
-    float3 top_right    = tex2D(_MainTex, uv + offset * float2( 1,  1)).rgb;
-
-    float3 gradient_x = (top_right + 2 * right + bottom_right) - (top_left + 2 * left + bottom_left);
-    float3 gradient_y = (top_left + 2 * top + top_right) - (bottom_left + 2 * bottom + bottom_right);
-
-    float edge = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
-
-#if TOOL_SHOW_EDGE
-    float2 pixel = uv * _MainTex_TexelSize.zw;
-    float2 mouse_pixel = _DebugMousePosition.xy * _MainTex_TexelSize.zw;
-
-    if (distance(pixel, mouse_pixel) < _DebugRadius)
-    {
-        return float4(edge.xxx, 1);
-    }
-#endif
-
-    float4 color = tex2D(_MainTex, uv);
-
-    return edge > _Threshold ? _LineColor : color;
-}
-    </script></code></pre>
-					</div>
-				</div>
 			</section>
 
 			<!-- Float as color -->
@@ -818,26 +776,7 @@ float4 Frag(v2f input) : SV_Target
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/bar.png" alt="Barra de debug con signo sobre la escena pixelada"></div>
 					<div class="panel code">
-						<pre data-hl="6,30-37"><code class="language-cpp" data-trim><script type="text/template">
-float4 Frag(v2f input) : SV_Target
-{
-    float2 uv = input.uv;
-    float slope = ...;
-
-    DEBUG_SIGNED_BAR(uv, slope, 0);
-
-    ...
-}
-
-#define DEBUG_SIGNED_BAR(uv, value, row) \
-    { \
-        float4 debug_color; \
-        if (debug_signed_bar((uv), (value), (row), debug_color)) \
-        { \
-            return debug_color; \
-        } \
-    }
-
+						<pre><code class="language-cpp" data-trim><script type="text/template">
 bool debug_signed_bar(float2 uv, float value, int row, out float4 color)
 {
     float2 cell_uv;
@@ -860,21 +799,6 @@ bool debug_signed_bar(float2 uv, float value, int row, out float4 color)
     color = float4(is_on_bar ? bar_color : BACKGROUND_COLOR, 1);
     return true;
 }
-
-bool debug_cell(float2 uv, int row, int row_span, int column, int column_count, out float2 cell_uv)
-{
-    float row_size = _ScreenParams.y / ROW_COUNT;
-    float2 pixel = float2(uv.x, 1.0 - uv.y) * _ScreenParams.xy;
-
-    float cell_width = REGION_WIDTH_IN_ROWS * row_size / column_count;
-    float2 cell_min = float2(column * cell_width, (row + 1) * row_size);
-    float2 cell_size = float2(cell_width, row_span * row_size);
-
-    float2 local = (pixel - cell_min) / cell_size;
-    cell_uv = float2(local.x, 1.0 - local.y);
-
-    return all(local >= 0.0) && all(local < 1.0);
-}
     </script></code></pre>
 					</div>
 				</div>
@@ -885,26 +809,7 @@ bool debug_cell(float2 uv, int row, int row_span, int column, int column_count, 
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/dial.png" alt="Dial de debug en la esquina de la escena pixelada"></div>
 					<div class="panel code">
-						<pre data-hl="6,40-45"><code class="language-cpp" data-trim><script type="text/template">
-float4 Frag(v2f input) : SV_Target
-{
-    float2 uv = input.uv;
-    float angle_in_turns = ...;
-
-    DEBUG_DIAL(uv, angle_in_turns, 0, 0);
-
-    ...
-}
-
-#define DEBUG_DIAL(uv, value, row, column) \
-    { \
-        float4 debug_color; \
-        if (debug_dial((uv), (value), (row), (column), debug_color)) \
-        { \
-            return debug_color; \
-        } \
-    }
-
+						<pre><code class="language-cpp" data-trim><script type="text/template">
 bool debug_dial(float2 uv, float value, int row, int column, out float4 color)
 {
     float2 cell_uv;
@@ -935,24 +840,182 @@ bool debug_dial(float2 uv, float value, int row, int column, out float4 color)
     color = float4(is_on_needle ? FOREGROUND_COLOR : FACE_COLOR, 1);
     return true;
 }
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
 
-bool debug_cell(float2 uv, int row, int row_span, int column, int column_count, out float2 cell_uv)
+			<!-- Digits · code -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/digits.png" alt="Valor impreso con dígitos en la esquina de la escena"></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+static const float digit_bitmaps[10] =
 {
-    float row_size = _ScreenParams.y / ROW_COUNT;
-    float2 pixel = float2(uv.x, 1.0 - uv.y) * _ScreenParams.xy;
+    480599.0, 139810.0, 476951.0, 476999.0, 350020.0, 464711.0, 464727.0, 476228.0, 481111.0, 481095.0
+};
 
-    float cell_width = REGION_WIDTH_IN_ROWS * row_size / column_count;
-    float2 cell_min = float2(column * cell_width, (row + 1) * row_size);
-    float2 cell_size = float2(cell_width, row_span * row_size);
+float print_value(float2 string_coords, float value, float integer_digits, float decimal_places)
+{
+    if (string_coords.y < 0.0 || string_coords.y >= 1.0)
+    {
+        return 0.0;
+    }
 
-    float2 local = (pixel - cell_min) / cell_size;
-    cell_uv = float2(local.x, 1.0 - local.y);
+    bool is_negative = value < 0.0;
+    value = abs(value);
 
-    return all(local >= 0.0) && all(local < 1.0);
+    float biggest_index = max(floor(log10(value)), 0.0);
+    float digit_index = integer_digits - floor(string_coords.x);
+
+    if (digit_index <= -decimal_places - 1.01)
+    {
+        return 0.0;
+    }
+
+    float character_bitmap = 0.0;
+
+    if (digit_index > biggest_index)
+    {
+        if (is_negative && digit_index < biggest_index + 1.5)
+        {
+            character_bitmap = MINUS_BITMAP;
+        }
+    }
+    else if (digit_index == -1.0)
+    {
+        character_bitmap = DECIMAL_POINT_BITMAP;
+    }
+    else
+    {
+        float reduced_value = value;
+
+        if (digit_index < 0.0)
+        {
+            reduced_value = frac(value);
+            digit_index += 1.0;
+        }
+
+        float digit_value = reduced_value / pow(10.0, digit_index);
+        int digit = (int)floor(fmod(digit_value, 10.0));
+        character_bitmap = digit_bitmaps[digit];
+    }
+
+    float bit_index = floor(frac(string_coords.x) * 4.0) + floor(string_coords.y * 5.0) * 4.0;
+
+    return floor(fmod(character_bitmap / pow(2.0, bit_index), 2.0));
 }
     </script></code></pre>
 					</div>
 				</div>
+				<aside class="notes">
+					[Herman] Each digit is a 4×5 bitmap stored in a float; the highlighted lines pick the digit and then
+					the bit for the current pixel.
+				</aside>
+			</section>
+
+			<!-- Debug view on part of the screen · split screen -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_half.png" alt="Mitad izquierda con el valor de bordes, mitad derecha con la escena"></div>
+					<div class="panel code">
+						<pre data-hl="15-20"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 uv = input.uv;
+    float2 offset = _MainTex_TexelSize.xy * _JumpSize;
+
+    float3 pixel00 = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
+    float3 pixel10 = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
+    //etc...
+
+    float3 gradient_x = (pixel22 + 2 * pixel21 + pixel20) - (pixel02 + 2 * pixel01 + pixel00);
+    float3 gradient_y = (pixel02 + 2 * pixel12 + pixel22) - (pixel00 + 2 * pixel10 + pixel20);
+
+    float edge = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
+
+#if TOOL_SHOW_GRADIENT
+    if (uv.x < 0.5)
+    {
+        return float4(edge.xxx, 1);
+    }
+#endif
+
+    float4 color = tex2D(_MainTex, uv);
+
+    return edge > _Threshold ? _LineColor : color;
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] For post processes, you may want to limit it to a specific part of the screen so you can
+					see the effect, or display more than one value. Here the left half shows the raw edge-detection
+					value behind the outline effect.
+				</aside>
+			</section>
+
+			<!-- Debug view on part of the screen · around the mouse -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_mouseposition.png" alt="Círculo alrededor del ratón que muestra el valor de bordes"></div>
+					<div class="panel code">
+						<pre data-hl="16-24"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 uv = input.uv;
+    float2 offset = _MainTex_TexelSize.xy * _JumpSize;
+
+    float3 pixel00 = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
+    float3 pixel10 = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
+
+    //etc...
+
+    float3 gradient_x = (pixel22 + 2 * pixel21 + pixel20) - (pixel02 + 2 * pixel01 + pixel00);
+    float3 gradient_y = (pixel02 + 2 * pixel12 + pixel22) - (pixel00 + 2 * pixel10 + pixel20);
+
+    float edge = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
+
+#if TOOL_SHOW_GRADIENT
+    float2 pixel = uv * _MainTex_TexelSize.zw;
+    float2 mouse_pixel = _DebugMousePosition.xy * _MainTex_TexelSize.zw;
+
+    if (distance(pixel, mouse_pixel) < _DebugRadius)
+    {
+        return float4(edge.xxx, 1);
+    }
+#endif
+
+    float4 color = tex2D(_MainTex, uv);
+
+    return edge > _Threshold ? _LineColor : color;
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Rendering actual digits -->
+			<section>
+				<div class="frame one">
+					<div class="media"><canvas data-demo="digits_probe"></canvas>
+						<div class="credit">shadertoy.com/view/4sBSWW</div>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] The probe moves over the field and prints the value under it.
+				</aside>
+			</section>
+
+			<!-- Digits in Shader Graph -->
+			<section>
+				<div class="frame one">
+					<div class="media contain"><img src="Unity%20Talk/Unity%20Talk/graphics/shader_graph_example.PNG" alt="Shader Graph con un Custom Function node que imprime valores"></div>
+				</div>
+				<aside class="notes">
+					[Herman] Link: gist.github.com/aras-p/657a4947bb8a4549fda53a84bb91fb25
+				</aside>
 			</section>
 
 			<!-- 2D vector as color -->
@@ -1046,7 +1109,7 @@ float3 Vector3ToColorAbs(float3 v) {
 			</section>
 
 			<!-- Discrete values · palette -->
-			<section>
+			<section data-transition="slide-in none-out">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/palette.png" alt="Objetos de la escena coloreados por ID con una paleta"></div>
 					<div class="panel code">
@@ -1069,7 +1132,7 @@ float4 Frag(v2f input) : SV_Target
 			</section>
 
 			<!-- Discrete values · hashing -->
-			<section>
+			<section data-transition="none">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/hash.png" alt="Objetos de la escena coloreados por ID con un hash"></div>
 					<div class="panel code">
@@ -1099,7 +1162,7 @@ float4 Frag(v2f input) : SV_Target
 			</section>
 
 			<!-- Discrete values · golden ratio · 2 IDs -->
-			<section>
+			<section data-transition="none">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/golden2.png" alt="Escena coloreada con 2 IDs usando la razón áurea"></div>
 					<div class="panel code">
@@ -1122,7 +1185,7 @@ float4 Frag(v2f input) : SV_Target
 			</section>
 
 			<!-- Discrete values · golden ratio · 3 IDs -->
-			<section>
+			<section data-transition="none">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/golden3.png" alt="Escena coloreada con 3 IDs usando la razón áurea"></div>
 					<div class="panel code">
@@ -1141,7 +1204,7 @@ float4 Frag(v2f input) : SV_Target
 			</section>
 
 			<!-- Discrete values · golden ratio · 4 IDs -->
-			<section>
+			<section data-transition="none">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/golden4.png" alt="Escena coloreada con 4 IDs usando la razón áurea"></div>
 					<div class="panel code">
@@ -1160,7 +1223,7 @@ float4 Frag(v2f input) : SV_Target
 			</section>
 
 			<!-- Discrete values · golden ratio · 5 IDs -->
-			<section>
+			<section data-transition="none-in slide-out">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/golden5.png" alt="Escena coloreada con 5 IDs usando la razón áurea"></div>
 					<div class="panel code">
@@ -1176,105 +1239,6 @@ float4 Frag(v2f input) : SV_Target
     </script></code></pre>
 					</div>
 				</div>
-			</section>
-
-			<!-- Rendering actual digits -->
-			<section>
-				<div class="frame one">
-					<div class="media"><canvas data-demo="digits_probe"></canvas>
-						<div class="credit">shadertoy.com/view/4sBSWW</div>
-					</div>
-				</div>
-				<aside class="notes">
-					[Herman] The probe moves over the field and prints the value under it.
-				</aside>
-			</section>
-
-			<!-- Digits · code -->
-			<section>
-				<div class="frame">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/digits.png" alt="Valor impreso con dígitos en la esquina de la escena"></div>
-					<div class="panel code">
-						<pre data-hl="6|53-55|59-61"><code class="language-cpp" data-trim><script type="text/template">
-float4 Frag(v2f input) : SV_Target
-{
-    float2 uv = input.uv;
-    float angle_in_turns = ...;
-
-    DEBUG_DISPLAY_FLOAT(uv, angle_in_turns, 0);
-
-    ...
-}
-
-static const float digit_bitmaps[10] =
-{
-    480599.0, 139810.0, 476951.0, 476999.0, 350020.0, 464711.0, 464727.0, 476228.0, 481111.0, 481095.0
-};
-
-float print_value(float2 string_coords, float value, float integer_digits, float decimal_places)
-{
-    if (string_coords.y < 0.0 || string_coords.y >= 1.0)
-    {
-        return 0.0;
-    }
-
-    bool is_negative = value < 0.0;
-    value = abs(value);
-
-    float biggest_index = max(floor(log10(value)), 0.0);
-    float digit_index = integer_digits - floor(string_coords.x);
-    float character_bitmap = 0.0;
-
-    if (digit_index > -decimal_places - 1.01)
-    {
-        if (digit_index > biggest_index)
-        {
-            if (is_negative && digit_index < biggest_index + 1.5)
-            {
-                character_bitmap = MINUS_BITMAP;
-            }
-        }
-        else if (digit_index == -1.0)
-        {
-            character_bitmap = DECIMAL_POINT_BITMAP;
-        }
-        else
-        {
-            float reduced_value = value;
-
-            if (digit_index < 0.0)
-            {
-                reduced_value = frac(value);
-                digit_index += 1.0;
-            }
-
-            float digit_value = reduced_value / pow(10.0, digit_index);
-            int digit = (int)floor(fmod(digit_value, 10.0));
-            character_bitmap = digit_bitmaps[digit];
-        }
-    }
-
-    float bit_index = floor(frac(string_coords.x) * 4.0) + floor(string_coords.y * 5.0) * 4.0;
-
-    return floor(fmod(character_bitmap / pow(2.0, bit_index), 2.0));
-}
-    </script></code></pre>
-					</div>
-				</div>
-				<aside class="notes">
-					[Herman] Each digit is a 4×5 bitmap stored in a float; the highlighted lines pick the digit and then
-					the bit for the current pixel.
-				</aside>
-			</section>
-
-			<!-- Digits in Shader Graph -->
-			<section>
-				<div class="frame one">
-					<div class="media contain"><img src="Unity%20Talk/Unity%20Talk/graphics/shader_graph_example.PNG" alt="Shader Graph con un Custom Function node que imprime valores"></div>
-				</div>
-				<aside class="notes">
-					[Herman] Link: gist.github.com/aras-p/657a4947bb8a4549fda53a84bb91fb25
-				</aside>
 			</section>
 
 			<!-- ============ 4. CONTROL DE FLUJO ============ -->
@@ -1678,13 +1642,13 @@ float3 UVToColor(float2 uv) {
 				</div>
 			</section>
 
-			<!-- Color grid · dithered -->
+			<!-- Color grid · tri-tone map -->
 			<section>
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/color_grid.png" alt="Grilla de colores">
 						<div class="cap">Input</div>
 					</div>
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/color_grid_dithered.png" alt="Grilla de colores con dithering">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/color_grid_tritone.png" alt="Grilla de colores con mapa tri-tono">
 						<div class="cap">Output</div>
 					</div>
 				</div>
@@ -1694,13 +1658,13 @@ float3 UVToColor(float2 uv) {
 				</aside>
 			</section>
 
-			<!-- Color grid · tri-tone map -->
+			<!-- Color grid · dithered -->
 			<section>
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/color_grid.png" alt="Grilla de colores">
 						<div class="cap">Input</div>
 					</div>
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/color_grid_tritone.png" alt="Grilla de colores con mapa tri-tono">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/color_grid_dithered.png" alt="Grilla de colores con dithering">
 						<div class="cap">Output</div>
 					</div>
 				</div>
@@ -1722,18 +1686,11 @@ float3 UVToColor(float2 uv) {
 				</aside>
 			</section>
 
-			<!-- Debug shapes -->
+			<!-- Debug shapes · max outline -->
 			<section>
-				<div class="frame">
-					<div class="media"><canvas data-demo="shapes_scene"></canvas></div>
-					<div class="panel text">
-						<ul class="shape-list">
-							<li>Primitives</li>
-							<li>Thin cylinders</li>
-							<li>Plants</li>
-							<li>High detail</li>
-							<li>Outline shapes</li>
-						</ul>
+				<div class="frame one">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/outline_max.png" alt="Formas de debug con un outline por filtro max">
+						<div class="cap">Outline · Max</div>
 					</div>
 				</div>
 				<aside class="notes">
@@ -1752,15 +1709,6 @@ float3 UVToColor(float2 uv) {
 				</div>
 			</section>
 
-			<!-- Debug shapes · max outline -->
-			<section>
-				<div class="frame one">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/outline_max.png" alt="Formas de debug con un outline por filtro max">
-						<div class="cap">Outline · Max</div>
-					</div>
-				</div>
-			</section>
-
 			<!-- ============ 9. TOOLS ============ -->
 			<!-- Frame Debugger -->
 			<section data-section="Tools">
@@ -1771,18 +1719,7 @@ float3 UVToColor(float2 uv) {
 					[Herman] In complex setups, the final render may involve several passes and multiple shaders. In
 					this case you want to see that the right things happen, and in the right order. Unity’s Frame
 					Debugger is the tool for this. It allows you to see the output of different passes.
-				</aside>
-			</section>
-
-			<!-- Inspecting input maps -->
-			<section>
-				<div class="frame one">
-					<div class="media"><canvas data-demo="shadow_map"></canvas>
-						<div class="labels n2"><span>Camera</span><span>Shadow map</span></div>
-					</div>
-				</div>
-				<aside class="notes">
-					[Herman] The Frame Debugger also shows the different maps that serve as input for shaders, such as
+					The Frame Debugger also shows the different maps that serve as input for shaders, such as
 					the shadow map.
 				</aside>
 			</section>
@@ -1790,7 +1727,7 @@ float3 UVToColor(float2 uv) {
 			<!-- RenderDoc -->
 			<section>
 				<div class="frame one">
-					<div class="media ph"><span>Stepping through a shader line by line in RenderDoc</span></div>
+					<div class="media contain indigo"><img src="Unity%20Talk/Unity%20Talk/graphics/render_doc_debug_view.PNG" alt="Depurando un shader línea por línea en RenderDoc"></div>
 				</div>
 				<aside class="notes">
 					[Herman] You can also use RenderDoc to examine values line by line in a shader.
@@ -1975,17 +1912,56 @@ float SineNoise(float x, float f) {
 			});
 		}
 
-		// ---- slide number inside each panel, like the reference ("20 / 63") ----------------------------
+		// ---- slide number on every slide ("20 / 63"); N toggles them on and off ---------------------------
 		function numberSlides() {
 			const slides = document.querySelectorAll('.reveal .slides > section');
 			slides.forEach((s, i) => {
-				s.querySelectorAll('.panel').forEach(p => {
-					const n = document.createElement('div');
-					n.className = 'num';
-					n.textContent = (i + 1) + ' / ' + slides.length;
-					p.appendChild(n);
-				});
+				const n = document.createElement('div');
+				n.className = 'num';
+				n.textContent = (i + 1) + ' / ' + slides.length;
+				s.appendChild(n);
 			});
+		}
+
+		function toggleNumbers() {
+			document.body.classList.toggle('hide-nums');
+		}
+
+		// ---- key help: F1 shows / hides a list of the controls ------------------------------------------
+		const HELP = [
+			['Left click, → , Space, Page Down', 'Next slide or step'],
+			['Middle click, ← , Page Up', 'Previous slide or step'],
+			['Home / End', 'First / last slide'],
+			['G', 'Go to slide number'],
+			['S', 'Speaker notes window'],
+			['N', 'Show / hide slide numbers'],
+			['F', 'Fullscreen'],
+			['O or Esc', 'Overview of all slides'],
+			['B or .', 'Black screen (pause)'],
+			['F1', 'Show / hide this help'],
+		];
+
+		function initHelp() {
+			const box = document.createElement('div');
+			box.id = 'key-help';
+			box.innerHTML = '<h2>Keys</h2><table>' +
+				HELP.map(([k, d]) => '<tr><td class="k">' + k + '</td><td>' + d + '</td></tr>').join('') +
+				'</table><p>Press F1 or Esc to close</p>';
+			document.body.appendChild(box);
+			const toggle = show => box.classList.toggle('open', show);
+			// capture phase so the browser's own F1 help and reveal.js never see the key
+			window.addEventListener('keydown', e => {
+				if (e.key === 'F1') {
+					e.preventDefault();
+					e.stopPropagation();
+					toggle();
+				} else if (e.key === 'Escape' && box.classList.contains('open')) {
+					e.preventDefault();
+					e.stopPropagation();
+					toggle(false);
+				}
+			}, true);
+			box.addEventListener('click', e => { e.stopPropagation(); toggle(false); });
 		}
 
 		// ---- highlighted lines: <pre data-hl="1|6-8"> shows lines 1, then (next click) lines 6-8 --------
@@ -2114,6 +2090,8 @@ float SineNoise(float x, float f) {
 			initHighlights(Reveal);
 			initPlayers(Reveal);
 			initMouseNav(Reveal);
+			Reveal.addKeyBinding({ keyCode: 78, key: 'N', description: 'Show / hide slide numbers' }, toggleNumbers);
+			initHelp();
 			ShaderDemos.start(() => Reveal.getCurrentSlide());
 		});
 	</script>
