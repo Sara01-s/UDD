@@ -10,7 +10,7 @@ uniform float uParam;
 out vec4 outColor;
 #define PI 3.14159265359
 #define TAU 6.28318530718
-#define BG vec3(0.085, 0.08, 0.078)
+#define BG vec3(0.106, 0.071, 0.227) // brand Indigo Dark #1B123A
 #define CORAL vec3(1.0, 0.443, 0.435)
 #define ACCENT vec3(0.976, 0.639, 0.196)
 #define YELLOW vec3(0.976, 0.933, 0.204)
@@ -110,19 +110,21 @@ float ditherQuant(float v, float levels, float th) {
 }
 
 // ---------- procedural test images ----------
+// brand colours (Gamelogic palette): sky Carrot -> Indigo Light, sun Lemon Light, hills Apple / Apple Dark
+const vec3 BRAND_DOTS[4] = vec3[4](vec3(1.000, 0.443, 0.435), vec3(0.008, 0.592, 0.996), vec3(0.976, 0.933, 0.204), vec3(0.482, 0.851, 0.882));
 vec3 testImage(vec2 uv, float t) {
-  vec3 col = mix(vec3(0.96, 0.62, 0.42), vec3(0.18, 0.28, 0.55), smoothstep(0.2, 1.0, uv.y));
+  vec3 col = mix(vec3(0.976, 0.639, 0.196), vec3(0.373, 0.322, 0.784), smoothstep(0.2, 1.0, uv.y));
   float sd = length((uv - vec2(0.72, 0.66)) * ASPECT);
-  col = mix(col, vec3(1.0, 0.93, 0.7), step(sd, 0.1));
+  col = mix(col, vec3(0.988, 0.969, 0.604), step(sd, 0.1));
   float h1 = 0.42 + 0.06 * sin(uv.x * 7. + 1.3) + 0.03 * sin(uv.x * 19. + t * 0.4);
-  col = mix(col, vec3(0.28, 0.5, 0.36), step(uv.y, h1));
+  col = mix(col, vec3(0.463, 0.784, 0.239), step(uv.y, h1));
   float h2 = 0.24 + 0.05 * sin(uv.x * 11. - t * 0.3 + 2.);
-  col = mix(col, vec3(0.12, 0.3, 0.24), step(uv.y, h2));
+  col = mix(col, vec3(0.102, 0.565, 0.176), step(uv.y, h2));
   for (int i = 0; i < 4; i++) {
     float fi = float(i);
     vec2 c = vec2(fract(0.15 + fi * 0.27 + t * 0.03 * (1. + fi * 0.3)), 0.1 + 0.16 * fract(fi * 0.618));
     float d = length((uv - c) * ASPECT);
-    col = mix(col, hue2rgb(fi * 0.21 + 0.55) * 0.9 + 0.05, step(d, 0.05 + 0.015 * fi));
+    col = mix(col, BRAND_DOTS[i], step(d, 0.05 + 0.015 * fi));
   }
   return col;
 }
@@ -402,14 +404,15 @@ float camAng() { return 0.7 + uTime * 0.2; }
 vec3 sunDir() { float a = uTime * 0.6; return normalize(vec3(cos(a), 0.85, sin(a))); }
 float fogF(float t) { return 1. - exp(-0.0012 * t * t); }
 vec3 albedoOf(float id) {
-  if (id < 1.5) return vec3(0.85, 0.3, 0.08);
-  if (id < 2.5) return vec3(0.7, 0.68, 0.62);
-  if (id < 3.5) return vec3(0.1, 0.42, 0.5);
+  if (id < 1.5) return vec3(0.949, 0.859, 0.030); // Lemon
+  if (id < 2.5) return vec3(0.000, 0.316, 0.991); // Azure
+  if (id < 3.5) return vec3(1.000, 0.167, 0.160); // Coral
   if (id < 4.5) return vec3(0.42, 0.22, 0.62);
   if (id < 5.5) return vec3(0.75, 0.72, 0.66);
   return vec3(0.2, 0.5, 0.15);
 }
-vec3 floorAlbedo(vec3 p) { return vec3(0.38 + 0.1 * mod(floor(p.x) + floor(p.z), 2.)); }
+// checker floor: #C8B6D1 / #72629D (linear)
+vec3 floorAlbedo(vec3 p) { return mix(vec3(0.586, 0.476, 0.646), vec3(0.170, 0.122, 0.344), mod(floor(p.x) + floor(p.z), 2.)); }
 vec3 lit(Hit h, vec3 albedo, vec3 l) {
   float dif = max(dot(h.n, l), 0.);
   float sh = dif > 0. ? softShadow(h.p + h.n * 0.01, l) : 0.;
@@ -646,12 +649,20 @@ vec4 demo(vec2 uv) {
   return vec4(h.n * 0.5 + 0.5, 1.);
 }` },
 
+  // Same scene and camera as the showcase map, with the sphere, box and torus replaced by real
+  // models from the Fx project (models.js), rasterized instead of ray-marched.
+  vec3_norm_mesh: { scene: 'fx_models', fs: `
+vec3 shade(vec3 n) { return normalize(n) * 0.5 + 0.5; }` },
+
   vec3_abs: { map: 'showcase', fs: `
 vec4 demo(vec2 uv) {
   Hit h = traceCam(aspectUV(uv), camAng());
   if (h.t < 0.) return vec4(BG, 1.);
   return vec4(abs(h.n), 1.);
 }` },
+
+  vec3_abs_mesh: { scene: 'fx_models', fs: `
+vec3 shade(vec3 n) { return abs(normalize(n)); }` },
 
   ids_palette: { fs: `
 const vec3 PALETTE[4] = vec3[4](vec3(0.90, 0.10, 0.10), vec3(0.10, 0.60, 0.20), vec3(0.10, 0.30, 0.90), vec3(0.95, 0.75, 0.10));
@@ -860,11 +871,13 @@ vec4 demo(vec2 uv) {
   return vec4(col, 1.);
 }` },
 
-  uv_grid_scene: { map: 'showcase', fs: `
+  // UvGrid.png (window.ShaderTextures.uvGrid, in models.js) on the sphere, box and torus
+  uv_grid_scene: { map: 'showcase', tex: 'uvGrid', fs: `
+uniform sampler2D uTex;
 vec4 demo(vec2 uv) {
   Hit h = traceCam(aspectUV(uv), camAng());
   if (h.t < 0.) return vec4(BG, 1.);
-  vec3 a = h.id < 0.5 ? floorAlbedo(h.p) : uvGrid(objUV(h.p, h.n, h.id));
+  vec3 a = h.id < 0.5 ? floorAlbedo(h.p) : textureLod(uTex, objUV(h.p, h.n, h.id), 0.).rgb;
   if (h.id > 0.5) a *= a;
   return vec4(mix(toSRGB(lit(h, a, sunDir())), BG, fogF(h.t)), 1.);
 }` },
@@ -1172,12 +1185,37 @@ function createRenderer(opts) {
         prog: p,
         uRes: gl.getUniformLocation(p, 'uRes'),
         uTime: gl.getUniformLocation(p, 'uTime'),
-        uParam: gl.getUniformLocation(p, 'uParam')
+        uParam: gl.getUniformLocation(p, 'uParam'),
+        uTex: gl.getUniformLocation(p, 'uTex')
       };
     }
     if (entry.error) console.error('[shader-demos] ' + name + ':\n' + entry.error);
     programs[name] = entry;
     return entry;
+  }
+
+  const textures = {};
+  function texture(key) {
+    if (textures[key]) return textures[key];
+    const t = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([128, 128, 128, 255]));
+    const src = (window.ShaderTextures || {})[key];
+    if (src) {
+      const img = new Image();
+      img.onload = () => {
+        gl.bindTexture(gl.TEXTURE_2D, t);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+      };
+      img.src = src;
+    } else console.error('[shader-demos] missing texture: ' + key);
+    return (textures[key] = t);
   }
 
   function render(name, spec, w, h, time, param) {
@@ -1192,12 +1230,188 @@ function createRenderer(opts) {
     gl.uniform2f(e.uRes, w, h);
     gl.uniform1f(e.uTime, time);
     gl.uniform1f(e.uParam, param);
+    if (spec.tex && e.uTex) {
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, texture(spec.tex));
+      gl.uniform1i(e.uTex, 0);
+    }
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     return true;
   }
 
   return { canvas, gl, program, render };
 }
+
+// ---- mesh renderer: draws models from models.js (window.ShaderModels) with a depth buffer -------
+const MESH_VS = `#version 300 es
+in vec3 aPos;
+in vec3 aNrm;
+uniform mat4 uMVP;
+uniform mat3 uRot;
+out vec3 vN;
+void main() {
+  vN = uRot * aNrm;
+  gl_Position = uMVP * vec4(aPos, 1.);
+}
+`;
+
+const MESH_FS_HEAD = `#version 300 es
+precision highp float;
+uniform float uTime;
+in vec3 vN;
+out vec4 outColor;
+`;
+
+const MESH_FS_MAIN = `
+void main() { outColor = vec4(shade(vN), 1.); }
+`;
+
+function mat4Mul(a, b) {
+  const o = new Float32Array(16);
+  for (let c = 0; c < 4; c++)
+    for (let r = 0; r < 4; r++)
+      o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
+  return o;
+}
+
+function perspective(fovY, aspect, near, far) {
+  const f = 1 / Math.tan(fovY / 2), nf = 1 / (near - far);
+  return new Float32Array([f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (far + near) * nf, -1, 0, 0, 2 * far * near * nf, 0]);
+}
+
+// where the models stand: the showcase map's sphere (-2.3), box (0) and torus (2.3), on the floor at y = -1
+const MESH_SCENES = {
+  fx_models: {
+    floorY: -1,
+    objects: [
+      { model: 'tree', pos: [-2.3, -1, 0], size: 2.3 },
+      { model: 'rock', pos: [0, -1, 0], size: 2.0 },
+      { model: 'mushroom', pos: [2.3, -1, 0], size: 1.9 }
+    ]
+  }
+};
+
+// same camera as orbit() in the ray-marched demos (CAM_DIST, CAM_ELEV, CAM_TARGET, camAng, focal 1.8)
+function orbitView(ang) {
+  const dist = 5.7, elev = 0.36, tg = [0, -0.1, 0];
+  const eye = [tg[0] + dist * Math.cos(ang) * Math.cos(elev), tg[1] + dist * Math.sin(elev), tg[2] + dist * Math.sin(ang) * Math.cos(elev)];
+  const norm = v => { const l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; };
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const f = norm([tg[0] - eye[0], tg[1] - eye[1], tg[2] - eye[2]]);
+  const r = norm(cross(f, [0, 1, 0]));
+  const u = cross(r, f);
+  return new Float32Array([r[0], u[0], -f[0], 0, r[1], u[1], -f[1], 0, r[2], u[2], -f[2], 0, -dot(r, eye), -dot(u, eye), dot(f, eye), 1]);
+}
+
+function floorDisc(y, radius) {
+  const p = [], n = [], seg = 96;
+  for (let i = 0; i < seg; i++) {
+    const a0 = i / seg * Math.PI * 2, a1 = (i + 1) / seg * Math.PI * 2;
+    p.push(0, y, 0, Math.cos(a1) * radius, y, Math.sin(a1) * radius, Math.cos(a0) * radius, y, Math.sin(a0) * radius);
+    n.push(0, 1, 0, 0, 1, 0, 0, 1, 0);
+  }
+  return { p, n };
+}
+
+function createMeshRenderer() {
+  const canvas = document.createElement('canvas');
+  const gl = canvas.getContext('webgl2', {
+    antialias: true, alpha: false, depth: true, stencil: false,
+    preserveDrawingBuffer: false, powerPreference: 'high-performance'
+  });
+  if (!gl) return null;
+  const vsh = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vsh, MESH_VS);
+  gl.compileShader(vsh);
+  const programs = {}, meshes = {};
+
+  function program(name, spec) {
+    if (programs[name]) return programs[name];
+    let entry;
+    const fs = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fs, MESH_FS_HEAD + spec.fs + MESH_FS_MAIN);
+    gl.compileShader(fs);
+    if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+      entry = { error: gl.getShaderInfoLog(fs) };
+    } else {
+      const p = gl.createProgram();
+      gl.attachShader(p, vsh);
+      gl.attachShader(p, fs);
+      gl.bindAttribLocation(p, 0, 'aPos');
+      gl.bindAttribLocation(p, 1, 'aNrm');
+      gl.linkProgram(p);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) entry = { error: gl.getProgramInfoLog(p) };
+      else entry = {
+        prog: p,
+        uMVP: gl.getUniformLocation(p, 'uMVP'),
+        uRot: gl.getUniformLocation(p, 'uRot'),
+        uTime: gl.getUniformLocation(p, 'uTime')
+      };
+    }
+    if (entry.error) console.error('[shader-demos] ' + name + ':\n' + entry.error);
+    programs[name] = entry;
+    return entry;
+  }
+
+  function mesh(key, inline) {
+    if (meshes[key]) return meshes[key];
+    const m = inline || (window.ShaderModels || {})[key];
+    if (!m) { console.error('[shader-demos] missing model: ' + key); return (meshes[key] = null); }
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    [[0, m.p], [1, m.n]].forEach(([loc, data]) => {
+      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0);
+    });
+    gl.bindVertexArray(null);
+    let top = 0;
+    for (let i = 1; i < m.p.length; i += 3) top = Math.max(top, m.p[i]);
+    return (meshes[key] = { vao, count: m.p.length / 3, top });
+  }
+
+  function render(name, spec, w, h, time) {
+    const e = program(name, spec);
+    if (e.error) return false;
+    const scene = MESH_SCENES[spec.scene];
+    if (canvas.width < w || canvas.height < h) {
+      canvas.width = Math.max(canvas.width, w);
+      canvas.height = Math.max(canvas.height, h);
+    }
+    gl.viewport(0, 0, w, h);
+    gl.clearColor(0.106, 0.071, 0.227, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);
+    gl.useProgram(e.prog);
+    gl.uniform1f(e.uTime, time);
+    // vertical field of view as in toScreen(): at least FIT_W (1.45) units across on narrow panes
+    const aspect = w / h;
+    const fovY = 2 * Math.atan(Math.max(1, 1.45 / aspect) / 1.8);
+    const vp = mat4Mul(perspective(fovY, aspect, 0.05, 60), orbitView(0.7 + time * 0.2));
+    gl.uniformMatrix3fv(e.uRot, false, new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]));
+    const draw = (m, model) => {
+      gl.uniformMatrix4fv(e.uMVP, false, mat4Mul(vp, model));
+      gl.bindVertexArray(m.vao);
+      gl.drawArrays(gl.TRIANGLES, 0, m.count);
+    };
+    const floor = mesh('__floor', floorDisc(scene.floorY, 38));
+    draw(floor, new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]));
+    scene.objects.forEach(o => {
+      const m = mesh(o.model);
+      if (!m) return;
+      const k = o.size;
+      draw(m, new Float32Array([k, 0, 0, 0, 0, k, 0, 0, 0, 0, k, 0, o.pos[0], o.pos[1], o.pos[2], 1]));
+    });
+    gl.bindVertexArray(null);
+    return true;
+  }
+
+  return { canvas, gl, program, render };
+}
+
+let meshRenderer;
 
 const MAX_PIXELS = 1.1e6;
 
@@ -1213,7 +1427,9 @@ function drawCanvas(r, el, time) {
   h = Math.max(1, Math.round(h * k));
   if (el.width !== w || el.height !== h) { el.width = w; el.height = h; }
   const ctx = el._ctx || (el._ctx = el.getContext('2d'));
-  if (!r.render(el.dataset.demo, spec, w, h, time, parseFloat(el.dataset.param || '0'))) {
+  let rr = r;
+  if (spec.scene) rr = meshRenderer === undefined ? (meshRenderer = createMeshRenderer()) : meshRenderer;
+  if (!rr || !rr.render(el.dataset.demo, spec, w, h, time, parseFloat(el.dataset.param || '0'))) {
     ctx.fillStyle = '#2a0d0d';
     ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = '#ff8a7a';
@@ -1221,7 +1437,7 @@ function drawCanvas(r, el, time) {
     ctx.fillText('shader error: ' + el.dataset.demo, 12, h / 6);
     return;
   }
-  ctx.drawImage(r.canvas, 0, r.canvas.height - h, w, h, 0, 0, w, h);
+  ctx.drawImage(rr.canvas, 0, rr.canvas.height - h, w, h, 0, 0, w, h);
 }
 
 function start(getSlide) {
@@ -1249,7 +1465,7 @@ function start(getSlide) {
   (function warm() {
     if (i >= names.length) return;
     const n = names[i++];
-    if (DEMOS[n]) r.program(n, DEMOS[n]);
+    if (DEMOS[n] && !DEMOS[n].scene) r.program(n, DEMOS[n]);
     setTimeout(warm, 40);
   })();
 }

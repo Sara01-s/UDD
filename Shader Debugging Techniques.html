@@ -67,6 +67,22 @@
 			grid-template-columns: 1fr;
 		}
 
+		.frame.grid6 {
+			grid-template-columns: repeat(3, 1fr);
+			grid-template-rows: repeat(2, 1fr);
+			gap: 24px;
+			padding: 48px;
+			background: var(--indigo);
+		}
+
+		.frame.grid6 .cell {
+			background: none;
+		}
+
+		.reveal .frame.grid6 .cell>img {
+			object-fit: contain;
+		}
+
 		.frame.quad {
 			grid-template-rows: 1fr 1fr;
 		}
@@ -114,6 +130,11 @@
 		/* looping video player: whole recording shrunk to fit, on indigo */
 		.reveal .frame .media.player {
 			background: var(--indigo);
+		}
+
+		.reveal .frame .media.player.stack>video {
+			position: relative;
+			inset: auto;
 		}
 
 		.reveal .frame .media.player>video {
@@ -177,6 +198,29 @@
 			border-radius: 24px;
 			font-size: 44px;
 			color: rgba(48, 40, 122, 0.6);
+		}
+
+		/* two QR codes stacked (outro) */
+		.media.light.qr-pair {
+			flex-direction: column;
+			gap: 56px;
+		}
+
+		.qr-pair .qr-item {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 16px;
+		}
+
+		.media.light.qr-pair .qr {
+			width: 360px;
+		}
+
+		.qr-pair .qr-item span {
+			font-size: 34px;
+			font-weight: 600;
+			color: var(--indigo);
 		}
 
 		/* captions over media */
@@ -706,7 +750,9 @@ float4 Frag(v2f input) : SV_Target
 			<!-- Float as color · color map texture · Viridis -->
 			<section>
 				<div class="frame">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/viridis.png" alt="Escena con la luminancia mapeada a Viridis"></div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/viridis.png" alt="Escena con la luminancia mapeada a Viridis">
+						<div class="cap">Viridis</div>
+					</div>
 					<div class="panel code">
 						<pre data-hl="6"><code class="language-cpp" data-trim><script type="text/template">
 float4 Frag(v2f input) : SV_Target
@@ -726,7 +772,9 @@ float4 Frag(v2f input) : SV_Target
 			<!-- Float as color · color map texture · Turbo -->
 			<section>
 				<div class="frame">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/turbo.png" alt="Escena con la luminancia mapeada a Turbo"></div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/turbo.png" alt="Escena con la luminancia mapeada a Turbo">
+						<div class="cap">Turbo</div>
+					</div>
 					<div class="panel code">
 						<pre data-hl="6"><code class="language-cpp" data-trim><script type="text/template">
 float4 Frag(v2f input) : SV_Target
@@ -746,7 +794,9 @@ float4 Frag(v2f input) : SV_Target
 			<!-- Float as color · cosine palette -->
 			<section>
 				<div class="frame">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/cosine.png" alt="Escena con la luminancia mapeada a una paleta coseno"></div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/cosine.png" alt="Escena con la luminancia mapeada a una paleta coseno">
+						<div class="cap">Cosine palette</div>
+					</div>
 					<div class="panel code">
 						<pre data-hl="6-11"><code class="language-cpp" data-trim><script type="text/template">
 float4 Frag(v2f input) : SV_Target
@@ -1049,7 +1099,9 @@ float4 Frag(v2f input) : SV_Target
 			<!-- Digits in Shader Graph -->
 			<section>
 				<div class="frame one">
-					<div class="media contain"><img src="Unity%20Talk/Unity%20Talk/graphics/shader_graph_example.PNG" alt="Shader Graph con un Custom Function node que imprime valores"></div>
+					<div class="media contain"><img src="Unity%20Talk/Unity%20Talk/graphics/shader_graph_example.PNG" alt="Shader Graph con un Custom Function node que imprime valores">
+						<div class="cap">Shader Graph</div>
+					</div>
 				</div>
 				<aside class="notes">
 					[Herman] Link: gist.github.com/aras-p/657a4947bb8a4549fda53a84bb91fb25
@@ -1147,7 +1199,7 @@ float3 Vector3ToColorAbs(float3 v) {
 			</section>
 
 			<!-- Discrete values · palette -->
-			<section data-transition="slide-in none-out">
+			<section>
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/palette.png" alt="Objetos de la escena coloreados por ID con una paleta"></div>
 					<div class="panel code">
@@ -1170,7 +1222,7 @@ float4 Frag(v2f input) : SV_Target
 			</section>
 
 			<!-- Discrete values · hashing -->
-			<section data-transition="none">
+			<section>
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/hash.png" alt="Objetos de la escena coloreados por ID con un hash"></div>
 					<div class="panel code">
@@ -1200,7 +1252,7 @@ float4 Frag(v2f input) : SV_Target
 			</section>
 
 			<!-- Discrete values · golden ratio · 2 IDs -->
-			<section data-transition="none">
+			<section data-transition="slide-in none-out">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/golden2.png" alt="Escena coloreada con 2 IDs usando la razón áurea"></div>
 					<div class="panel code">
@@ -1518,8 +1570,7 @@ float3 LogView(float3 hdr) {
 			<!-- Where should the threshold be? -->
 			<section data-section="Animation and time">
 				<div class="frame">
-					<div class="media"><img src="img/threshold_black.png" alt="Imagen casi completamente negra"
-							style="--pos: 94% 50%"></div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/threshold.png" alt="Escena con un threshold mal elegido"></div>
 					<div class="panel code">
 						<pre><code class="language-cpp" data-trim><script type="text/template">
 float Threshold(float3 color, float t) {
@@ -1539,7 +1590,7 @@ float Threshold(float3 color, float t) {
 			<!-- Animate it -->
 			<section>
 				<div class="frame one">
-					<div class="media"><canvas data-demo="threshold_anim"></canvas></div>
+					<div class="media player"><video src="Unity%20Talk/Unity%20Talk/graphics/Movie_016_d.mp4" data-autoplay loop muted playsinline preload="auto"></video></div>
 				</div>
 				<aside class="notes">
 					[Herman] In some cases you may not have your hands free to adjust the slider, in which case you can
@@ -1551,7 +1602,11 @@ float Threshold(float3 color, float t) {
 			<!-- Animate it with _Time -->
 			<section>
 				<div class="frame">
-					<div class="media"><canvas data-demo="threshold_anim"></canvas></div>
+					<div class="media player stack">
+						<video src="Unity%20Talk/Unity%20Talk/graphics/Movie_016_d.mp4" data-autoplay loop muted playsinline preload="auto"></video>
+						<video src="Unity%20Talk/Unity%20Talk/graphics/Movie_017_d.mp4" data-autoplay loop muted playsinline preload="auto"></video>
+						<div class="labels rows"><span>Sweep</span><span>Pulse</span></div>
+					</div>
 					<div class="panel code">
 						<pre><code class="language-cpp" data-trim><script type="text/template">
 float Sweep(float time, float seconds) {
@@ -1579,21 +1634,23 @@ float Pulse(float time) {
 				</aside>
 			</section>
 
-			<!-- UV gradients -->
+			<!-- UV debug texture on a mesh -->
 			<section>
-				<div class="frame">
-					<div class="media"><canvas data-demo="uv_gradient_scene"></canvas></div>
-					<div class="panel code">
-						<pre><code class="language-cpp" data-trim><script type="text/template">
-float3 UVToColor(float2 uv) {
-    return float3(uv, 0);
-}
-    </script></code></pre>
-					</div>
+				<div class="frame one">
+					<div class="media contain indigo"><img src="Unity%20Talk/Unity%20Talk/graphics/debug_uv.PNG" alt="Malla con una textura de debug UV"></div>
 				</div>
-				<aside class="notes">
-					[Herman] Gradients are also super useful, and moreover can be computed.
-				</aside>
+			</section>
+
+			<!-- UV debug textures · six variants -->
+			<section>
+				<div class="frame grid6">
+					<div class="cell"><img src="Unity%20Talk/Unity%20Talk/graphics/U1.png" alt="Textura de debug UV U1"></div>
+					<div class="cell"><img src="Unity%20Talk/Unity%20Talk/graphics/U3.png" alt="Textura de debug UV U3"></div>
+					<div class="cell"><img src="Unity%20Talk/Unity%20Talk/graphics/U15.png" alt="Textura de debug UV U15"></div>
+					<div class="cell"><img src="Unity%20Talk/Unity%20Talk/graphics/U4.png" alt="Textura de debug UV U4"></div>
+					<div class="cell"><img src="Unity%20Talk/Unity%20Talk/graphics/U5.png" alt="Textura de debug UV U5"></div>
+					<div class="cell"><img src="Unity%20Talk/Unity%20Talk/graphics/U19.png" alt="Textura de debug UV U19"></div>
+				</div>
 			</section>
 
 			<!-- Gradient · quantized -->
@@ -1607,7 +1664,8 @@ float3 UVToColor(float2 uv) {
 					</div>
 				</div>
 				<aside class="notes">
-					[Herman] Besides using debug images for textures, you can also use them for fullscreen effects to
+					[Herman] Gradients are also super useful, and moreover can be computed.
+					Besides using debug images for textures, you can also use them for fullscreen effects to
 					replace the scene. For example, in a quantization filter, you can use gradients to see whether the
 					bands are evenly spaced.
 				</aside>
@@ -1724,11 +1782,11 @@ float3 UVToColor(float2 uv) {
 				</aside>
 			</section>
 
-			<!-- Debug shapes · max outline -->
+			<!-- Debug shapes · Sobel outline -->
 			<section>
 				<div class="frame one">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/outline_max.png" alt="Formas de debug con un outline por filtro max">
-						<div class="cap">Outline · Max</div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/outline_sobel.png" alt="Formas de debug con un outline Sobel">
+						<div class="cap">Outline · Sobel</div>
 					</div>
 				</div>
 				<aside class="notes">
@@ -1738,11 +1796,11 @@ float3 UVToColor(float2 uv) {
 				</aside>
 			</section>
 
-			<!-- Debug shapes · Sobel outline -->
+			<!-- Debug shapes · max outline -->
 			<section>
 				<div class="frame one">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/outline_sobel.png" alt="Formas de debug con un outline Sobel">
-						<div class="cap">Outline · Sobel</div>
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/outline_max.png" alt="Formas de debug con un outline por filtro max">
+						<div class="cap">Outline · Max</div>
 					</div>
 				</div>
 			</section>
@@ -1751,7 +1809,9 @@ float3 UVToColor(float2 uv) {
 			<!-- Frame Debugger -->
 			<section data-section="Tools">
 				<div class="frame one">
-					<div class="media player"><video src="Unity%20Talk/Unity%20Talk/graphics/frame_debugger.mp4" data-autoplay loop muted playsinline preload="auto"></video></div>
+					<div class="media player"><video src="Unity%20Talk/Unity%20Talk/graphics/frame_debugger.mp4" data-autoplay loop muted playsinline preload="auto"></video>
+						<div class="cap">Frame Debugger</div>
+					</div>
 				</div>
 				<aside class="notes">
 					[Herman] In complex setups, the final render may involve several passes and multiple shaders. In
@@ -1765,7 +1825,9 @@ float3 UVToColor(float2 uv) {
 			<!-- RenderDoc -->
 			<section>
 				<div class="frame one">
-					<div class="media contain indigo"><img src="Unity%20Talk/Unity%20Talk/graphics/render_doc_debug_view.PNG" alt="Depurando un shader línea por línea en RenderDoc"></div>
+					<div class="media contain indigo"><img src="Unity%20Talk/Unity%20Talk/graphics/render_doc_debug_view.PNG" alt="Depurando un shader línea por línea en RenderDoc">
+						<div class="cap">RenderDoc</div>
+					</div>
 				</div>
 				<aside class="notes">
 					[Herman] You can also use RenderDoc to examine values line by line in a shader.
@@ -1791,13 +1853,13 @@ float3 UVToColor(float2 uv) {
 			<!-- Plot your equations (2) -->
 			<section>
 				<div class="frame">
-					<div class="media"><canvas data-demo="graph_falloff"></canvas></div>
+					<div class="media player"><video src="Unity%20Talk/Unity%20Talk/graphics/desmos.mp4" data-autoplay loop muted playsinline preload="auto"></video>
+						<div class="cap">Desmos</div>
+					</div>
 					<div class="panel code">
 						<pre class="eq">y = 1 / (1 + k·x²)
 
-<span class="k1">k = 1</span>
-<span class="k4">k = 4</span>
-<span class="k16">k = 16</span></pre>
+k = [-10, 10]</pre>
 					</div>
 				</div>
 			</section>
@@ -1899,8 +1961,9 @@ float SineNoise(float x, float f) {
 			<!-- ¡Gracias! -->
 			<section>
 				<div class="frame">
-					<div class="media light">
-						<div class="qr">QR</div>
+					<div class="media light qr-pair">
+						<div class="qr-item"><div class="qr">QR</div><span>Herman</span></div>
+						<div class="qr-item"><div class="qr">QR</div><span>Sara</span></div>
 					</div>
 					<div class="panel text">
 						<h1>¡Gracias!</h1>
@@ -1922,6 +1985,7 @@ float SineNoise(float x, float f) {
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/notes/notes.min.js"></script>
+	<script src="models.js"></script>
 	<script src="shader-demos.js"></script>
 	<script>
 		// ---- code size: the less code, the bigger the font -------------------------------------------
