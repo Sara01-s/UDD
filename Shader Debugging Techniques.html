@@ -915,6 +915,44 @@ float print_value(float2 string_coords, float value, float integer_digits, float
 				</aside>
 			</section>
 
+			<!-- Full screen (again, leading into split screen) -->
+			<section>
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_fullscreen.png" alt="Valor del detector de bordes mostrado a pantalla completa"></div>
+					<div class="panel code">
+						<pre data-hl="16-18"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 uv = input.uv;
+    float2 offset = _MainTex_TexelSize.xy * _JumpSize;
+
+    float3 pixel00 = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
+    float3 pixel10 = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
+    // etc...
+
+
+    float3 gradient_x = (pixel22 + 2 * pixel21 + pixel20) - (pixel02 + 2 * pixel01 + pixel00);
+    float3 gradient_y = (pixel02 + 2 * pixel12 + pixel22) - (pixel00 + 2 * pixel10 + pixel20);
+
+    float gradient = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
+
+#if TOOL_SHOW_GRADIENT
+    return float4(gradient.xxx, 1);
+#endif
+
+    float4 color = tex2D(_MainTex, uv);
+
+    return gradient > _Threshold ? _LineColor : color;
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">
+					[Herman] Sometimes it is ok to display the value per pixel, either of the screen or the triangle
+					mesh.
+				</aside>
+			</section>
+
 			<!-- Debug view on part of the screen · split screen -->
 			<section>
 				<div class="frame">
