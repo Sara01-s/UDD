@@ -479,17 +479,19 @@ const DEMOS = {
   scene: { map: 'showcase', fs: `
 vec4 demo(vec2 uv) { return vec4(sceneColor(traceCam(aspectUV(uv), camAng())), 1.); }` },
 
-  diffuse: { map: 'sphere', fs: `
+  diffuse: { map: 'sphere', tex: 'uvGrid', fs: `
+uniform sampler2D uTex;
 vec4 demo(vec2 uv) {
   Hit h = traceCam(aspectUV(uv), 0.4);
   if (h.t < 0.) return vec4(BG, 1.);
   vec3 l = normalize(vec3(cos(uTime * 0.8), 0.4, sin(uTime * 0.8)));
   float ndotl = saturate(dot(h.n, l));
-  vec3 albedo = uvGrid(objUV(h.p, h.n, h.id));
+  vec3 albedo = textureLod(uTex, objUV(h.p, h.n, h.id) * 2., 0.).rgb;
   return vec4(toSRGB(albedo * albedo * ndotl), 1.);
 }` },
 
-  err_nan: { map: 'sphere', scale: 0.8, fs: `
+  err_nan: { map: 'sphere', scale: 0.8, tex: 'uvGrid', fs: `
+uniform sampler2D uTex;
 vec4 demo(vec2 uv) {
   vec2 frag = uv * uRes;
   float px = max(4., uRes.y / 45.);
@@ -498,7 +500,7 @@ vec4 demo(vec2 uv) {
   Hit hc = traceCam(aspectUV((cell + 0.5) * px / uRes), 0.4);
   vec3 l = normalize(vec3(cos(uTime * 0.8), 0.4, sin(uTime * 0.8)));
   vec3 col = BG;
-  if (h.t > 0.) { vec3 a = uvGrid(objUV(h.p, h.n, h.id)); col = toSRGB(a * a * saturate(dot(h.n, l)) + 0.01); }
+  if (h.t > 0.) { vec3 a = textureLod(uTex, objUV(h.p, h.n, h.id) * 2., 0.).rgb; col = toSRGB(a * a * saturate(dot(h.n, l)) + 0.01); }
   if (hc.t > 0.) {
     float flick = hash12(cell + floor(uTime * 6.) * vec2(7., 13.));
     if (abs(dot(hc.n, l)) < 0.14 && flick > 0.35) col = vec3(0.);
@@ -520,13 +522,14 @@ vec4 demo(vec2 uv) {
   return vec4(mix(col, BG, fogF(h.t)), 1.);
 }` },
 
-  err_stretched_uv: { map: 'sphere', fs: `
+  err_stretched_uv: { map: 'sphere', tex: 'uvGrid', fs: `
+uniform sampler2D uTex;
 vec4 demo(vec2 uv) {
   Hit h = traceCam(aspectUV(uv), 0.);
   if (h.t < 0.) return vec4(BG, 1.);
   vec3 q = h.p;
   q.xz = rot(0.6 * sin(uTime * 0.5)) * q.xz;
-  vec3 a = uvGrid(q.xy * 0.5 + 0.5);
+  vec3 a = textureLod(uTex, q.xy + 1., 0.).rgb;
   vec3 l = normalize(vec3(1., 0.6, 0.3));
   return vec4(toSRGB(a * a * (0.1 + saturate(dot(h.n, l)))), 1.);
 }` },

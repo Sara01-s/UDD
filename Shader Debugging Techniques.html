@@ -1252,7 +1252,7 @@ float4 Frag(v2f input) : SV_Target
 			</section>
 
 			<!-- Discrete values · golden ratio · 2 IDs -->
-			<section data-transition="slide-in none-out">
+			<section data-group="golden" data-background-transition="none">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/golden2.png" alt="Escena coloreada con 2 IDs usando la razón áurea"></div>
 					<div class="panel code">
@@ -1275,7 +1275,7 @@ float4 Frag(v2f input) : SV_Target
 			</section>
 
 			<!-- Discrete values · golden ratio · 3 IDs -->
-			<section data-transition="none">
+			<section data-group="golden" data-background-transition="none">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/golden3.png" alt="Escena coloreada con 3 IDs usando la razón áurea"></div>
 					<div class="panel code">
@@ -1294,7 +1294,7 @@ float4 Frag(v2f input) : SV_Target
 			</section>
 
 			<!-- Discrete values · golden ratio · 4 IDs -->
-			<section data-transition="none">
+			<section data-group="golden" data-background-transition="none">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/golden4.png" alt="Escena coloreada con 4 IDs usando la razón áurea"></div>
 					<div class="panel code">
@@ -1313,7 +1313,7 @@ float4 Frag(v2f input) : SV_Target
 			</section>
 
 			<!-- Discrete values · golden ratio · 5 IDs -->
-			<section data-transition="none-in slide-out">
+			<section data-group="golden" data-background-transition="none">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/golden5.png" alt="Escena coloreada con 5 IDs usando la razón áurea"></div>
 					<div class="panel code">
@@ -2152,17 +2152,36 @@ float SineNoise(float x, float f) {
 			sync();
 		}
 
+		// ---- navigation: slides that share a data-group swap instantly (no transition) ----------------
+		// Between two slides of the same group both get data-transition="none"; any other move uses the
+		// normal slide transition. Set just before each move, so it works in both directions.
+		function go(deck, dir) {
+			const frags = deck.availableFragments();
+			if (dir > 0 ? frags.next : frags.prev) return dir > 0 ? deck.next() : deck.prev();
+			const slides = deck.getSlides();
+			const cur = deck.getIndices().h, target = cur + dir;
+			const a = slides[cur], b = slides[target];
+			if (a && b) {
+				const same = a.dataset.group && a.dataset.group === b.dataset.group;
+				[a, b].forEach(s => {
+					if (same) s.setAttribute('data-transition', 'none');
+					else s.removeAttribute('data-transition');
+				});
+			}
+			dir > 0 ? deck.next() : deck.prev();
+		}
+
 		// ---- mouse navigation: left click = next, middle click = previous ---------------------------
 		function initMouseNav(deck) {
 			document.addEventListener('click', e => {
 				if (e.button !== 0 || e.target.closest('a, button, input, select, textarea, video[controls]')) return;
-				deck.next();
+				go(deck, 1);
 			});
 			// middle button: stop the browser's autoscroll, then go back
 			document.addEventListener('mousedown', e => {
 				if (e.button !== 1) return;
 				e.preventDefault();
-				deck.prev();
+				go(deck, -1);
 			});
 			document.addEventListener('auxclick', e => {
 				if (e.button === 1) e.preventDefault();
@@ -2187,6 +2206,11 @@ float SineNoise(float x, float f) {
 			transition: 'slide',
 			backgroundTransition: 'slide',
 			transitionSpeed: 'default',
+			// arrows, space and page up/down go through go() so grouped slides swap without a transition
+			keyboard: {
+				39: () => go(Reveal, 1), 32: () => go(Reveal, 1), 34: () => go(Reveal, 1),
+				37: () => go(Reveal, -1), 33: () => go(Reveal, -1)
+			},
 			plugins: [RevealHighlight, RevealNotes]
 		}).then(() => {
 			initHighlights(Reveal);
