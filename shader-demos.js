@@ -1134,6 +1134,189 @@ vec4 demo(vec2 uv) {
   col = mix(col, top ? CYAN : ACCENT, 1. - smoothstep(1.5, 2.5, d));
   if (abs(uv.y - 0.5) * uRes.y < 1.) col = GBG + 0.15;
   return vec4(col, 1.);
+}` },
+
+  // ---- forest scene demos (createForestRenderer): live versions of the UDD2026 captures, following the Fx effects ----
+  // Pixelate, hex grid, Debug View = Debug Info. The grid angle swings between -67.5 and 67.5 degrees (period 12 s), and
+  // the display shows it the way Pixelate.shader does (signed bar of turns * 4, dial in turns, degrees as digits).
+  forest_pixelate_bar: { forest: true, fs: `
+vec4 demo(vec2 uv) {
+  float grid_angle = radians(67.5) * sin(2. * PI * uTime / 12.);
+  float grid_angle_turns = grid_angle / (2.0 * PI);
+  DEBUG_DISPLAY_SIGNED_BAR(uv, grid_angle_turns * 4., 0);
+  return pixelate(uv, grid_angle).color;
+}` },
+
+  forest_pixelate_dial: { forest: true, fs: `
+vec4 demo(vec2 uv) {
+  float grid_angle = radians(67.5) * sin(2. * PI * uTime / 12.);
+  float grid_angle_turns = grid_angle / (2.0 * PI);
+  DEBUG_DISPLAY_DIAL(uv, grid_angle_turns, 0, 0);
+  return pixelate(uv, grid_angle).color;
+}` },
+
+  forest_pixelate_digits: { forest: true, fs: `
+vec4 demo(vec2 uv) {
+  float grid_angle = radians(67.5) * sin(2. * PI * uTime / 12.);
+  float grid_angle_turns = grid_angle / (2.0 * PI);
+  DEBUG_DISPLAY_FLOAT(uv, grid_angle_turns * 360., 0);
+  return pixelate(uv, grid_angle).color;
+}` },
+
+  // Pixelate with Debug View = Cell Distance in the Mouse debug area, and all of Pixelate's displays
+  forest_pixelate_complex: { forest: true, defines: '#define TOOL_SHOW_AREA_MOUSE\n', fs: `
+vec4 demo(vec2 uv) {
+  float grid_angle = radians(67.5) * sin(2. * PI * uTime / 12.);
+  PixelateResult p = pixelate(uv, grid_angle);
+  vec2 display_world_step = vec2(1.);
+  float cell_aspect = p.cell_dimensions.x / max(p.cell_dimensions.y, 1e-5);
+  float grid_angle_turns = grid_angle / (2.0 * PI);
+  vec2 offset_phase = fract(vec2(0.) / max(p.cell_dimensions, 1e-5));
+  DEBUG_DISPLAY_LEGEND(uv);
+  DEBUG_DISPLAY_BAR(uv, display_world_step.x * 0.5, 0);
+  DEBUG_DISPLAY_BAR(uv, display_world_step.y * 0.5, 1);
+  DEBUG_DISPLAY_BAR(uv, cell_aspect, 2);
+  DEBUG_DISPLAY_DIAL(uv, grid_angle_turns, 3, 0);
+  DEBUG_DISPLAY_DIAL(uv, offset_phase.x, 3, 1);
+  DEBUG_DISPLAY_DIAL(uv, offset_phase.y, 5, 0);
+  float debug_value = p.cell_distance;
+  DEBUG_VIEW(uv, vec4(vec3(debug_value), 1));
+  return p.color;
+}` },
+
+  // Simple Outline (normals source), Debug View = Edge, in the Full Screen / Left Half / Mouse debug areas
+  forest_edge: { forest: true, fs: `
+vec4 demo(vec2 uv) {
+  float edge = outline_edge(uv);
+  float debug_value = edge;
+  DEBUG_DISPLAY_LEGEND(uv);
+  DEBUG_VIEW(uv, vec4(vec3(debug_value), 1));
+  return outline_result(uv, edge);
+}` },
+
+  forest_edge_half: { forest: true, defines: '#define TOOL_SHOW_AREA_LEFT_HALF\n', fs: `
+vec4 demo(vec2 uv) {
+  float edge = outline_edge(uv);
+  float debug_value = edge;
+  DEBUG_DISPLAY_LEGEND(uv);
+  DEBUG_VIEW(uv, vec4(vec3(debug_value), 1));
+  return outline_result(uv, edge);
+}` },
+
+  forest_edge_mouse: { forest: true, defines: '#define TOOL_SHOW_AREA_MOUSE\n', fs: `
+vec4 demo(vec2 uv) {
+  float edge = outline_edge(uv);
+  float debug_value = edge;
+  DEBUG_DISPLAY_LEGEND(uv);
+  DEBUG_VIEW(uv, vec4(vec3(debug_value), 1));
+  return outline_result(uv, edge);
+}` },
+
+  // The edge view (with its legend) remapped by a second effect: Texture Color Map (viridis, turbo) and Cosine
+  // Palette Map with the talk's settings
+  forest_viridis: { forest: true, fs: `
+vec4 edge_view(vec2 uv) {
+  DEBUG_DISPLAY_LEGEND(uv);
+  return vec4(vec3(outline_edge(uv)), 1);
+}
+vec4 demo(vec2 uv) {
+  float t = saturate(to_luminosity(edge_view(uv).rgb));
+  return vec4(viridis(t), 1.);
+}` },
+
+  forest_turbo: { forest: true, fs: `
+vec4 edge_view(vec2 uv) {
+  DEBUG_DISPLAY_LEGEND(uv);
+  return vec4(vec3(outline_edge(uv)), 1);
+}
+vec4 demo(vec2 uv) {
+  float t = saturate(to_luminosity(edge_view(uv).rgb));
+  return vec4(turbo(t), 1.);
+}` },
+
+  forest_cosine: { forest: true, fs: `
+vec4 edge_view(vec2 uv) {
+  DEBUG_DISPLAY_LEGEND(uv);
+  return vec4(vec3(outline_edge(uv)), 1);
+}
+vec3 cosine_palette(float t, vec3 offset, vec3 amplitude, vec3 frequency, vec3 phase) {
+  return offset + amplitude * cos(2.0 * PI * (frequency * t + phase));
+}
+vec4 demo(vec2 uv) {
+  vec4 color = edge_view(uv);
+  float t = (color.r + color.g + color.b) / 3.0;
+  return vec4(cosine_palette(t, vec3(0., 0.7, 0.5), vec3(0.5), vec3(5., 2., 1.), vec3(0.6, 0.2, 0.2)), 1.);
+}` },
+
+  // Flow Blur debug views: Gradient (2D legend), Gradient Abs (abs legend), Flow Direction (direction legend)
+  forest_flow_gradient: { forest: true, fs: `
+vec4 demo(vec2 uv) {
+  vec2 debug_value = sobel_gradient(uv);
+  DEBUG_DISPLAY_LEGEND_2D(uv);
+  DEBUG_VIEW(uv, vec4(debug_value * 0.5 + 0.5, 0, 1));
+  return sceneAt(uv);
+}` },
+
+  forest_flow_abs: { forest: true, fs: `
+vec4 demo(vec2 uv) {
+  vec2 debug_value = abs(sobel_gradient(uv));
+  DEBUG_DISPLAY_LEGEND_2D_ABS(uv);
+  DEBUG_VIEW(uv, vec4(debug_value, 0, 1));
+  return sceneAt(uv);
+}` },
+
+  forest_flow_direction: { forest: true, fs: `
+vec4 demo(vec2 uv) {
+  vec2 debug_value = flow_direction(uv);
+  DEBUG_DISPLAY_LEGEND_DIRECTION(uv);
+  DEBUG_VIEW(uv, RGB1(debug_direction_color(debug_value)));
+  return sceneAt(uv);
+}` },
+
+  // ID maps: Palette ID Map (the talk's six colours, Indigo background) and Mod ID Map (8 hashed colours)
+  forest_palette: { forest: true, fs: `
+const vec3 _Colors[6] = vec3[6](vec3(1., 0.443, 0.435), vec3(0.976, 0.639, 0.196), vec3(0.976, 0.933, 0.204),
+  vec3(0.482, 0.851, 0.882), vec3(0.008, 0.592, 0.996), vec3(0.188, 0.157, 0.478));
+vec4 demo(vec2 uv) {
+  ivec3 info = objectInfo(uv);
+  if (info.x == 0) return vec4(0.188, 0.157, 0.478, 1.);
+  int color_index = info.y;
+  return RGB1(_Colors[color_index]);
+}` },
+
+  forest_hash: { forest: true, fs: `
+uvec3 hash(uvec3 value) {
+  value ^= value >> 16;
+  value *= 0x7feb352du;
+  value ^= value >> 15;
+  value *= 0x846ca68bu;
+  value ^= value >> 16;
+  return value;
+}
+vec3 index_color(uint color_index, uint seed) {
+  uvec3 h = hash(color_index + seed * 0x9e3779b9u + uvec3(0u, 0x68e31da4u, 0xb5297a4du));
+  return vec3(h >> 8) / 16777215.0;
+}
+vec4 demo(vec2 uv) {
+  // the background (no renderer) has ID 0, so it gets color index 0
+  ivec3 info = objectInfo(uv);
+  int color_index = info.x == 0 ? 0 : info.z;
+  return RGB1(index_color(uint(color_index), 0u));
+}` },
+
+  // Threshold, Debug View = Debug Info (threshold as a bar and as digits). uParam picks the Animation mode:
+  // 0 None (0.85, or the mouse's x when it is over the canvas), 1 Sweep, 2 Pulse; period 4 s.
+  forest_threshold: { forest: true, fs: `
+float sweep(float time, float period) { return fract(time / period); }
+float pulse(float time, float period) { return sin(2.0 * PI * time / period) * 0.5 + 0.5; }
+vec4 demo(vec2 uv) {
+  float period = 4.;
+  float threshold = uParam > 1.5 ? pulse(uTime, period) : uParam > 0.5 ? sweep(uTime, period) : (uMouse.x < 0. ? 0.85 : uMouse.x);
+  vec4 color = sceneAt(uv);
+  float luminosity = to_luminosity(color.rgb);
+  DEBUG_DISPLAY_BAR(uv, threshold, 0);
+  DEBUG_DISPLAY_FLOAT(uv, threshold, 1);
+  return luminosity > threshold ? vec4(1.) : vec4(0., 0., 0., 1.);
 }` }
 };
 
@@ -1414,6 +1597,690 @@ function createMeshRenderer() {
   return { canvas, gl, program, render };
 }
 
+const GAMELOGIC_DEBUG = `
+// ---- GLSL port of za.co.gamelogic.fx Runtime/Core/Shaders/GamelogicDebug.hlsl (displays, legends, debug view areas).
+// Same layout, colours and antialiasing; the 3D legend is left out. TEXEL_SIZE is the canvas, _Time.y is uTime and
+// _DebugMousePosition is uMouse (or a slow drift when the mouse isn't over the canvas).
+#define TEXEL_SIZE vec4(1. / uRes, uRes)
+#define GAMELOGIC_DEBUG_BACKGROUND_COLOR vec3(0.188, 0.157, 0.478)
+#define GAMELOGIC_DEBUG_SEPARATOR_COLOR vec3(0.008, 0.592, 0.996)
+#define GAMELOGIC_DEBUG_FACE_COLOR vec3(0.008, 0.592, 0.996)
+#define GAMELOGIC_DEBUG_FOREGROUND_COLOR vec3(0.976, 0.933, 0.204)
+#define GAMELOGIC_DEBUG_OUT_OF_RANGE_COLOR vec3(1.0, 0.443, 0.435)
+#define GAMELOGIC_DEBUG_OUT_OF_RANGE_LOW_COLOR vec3(1.0, 0.443, 0.435)
+#define GAMELOGIC_DEBUG_OUT_OF_RANGE_HIGH_COLOR vec3(0.976, 0.639, 0.196)
+#define GAMELOGIC_DEBUG_TICK_DARK_COLOR GAMELOGIC_DEBUG_BACKGROUND_COLOR
+#define GAMELOGIC_DEBUG_TICK_LIGHT_COLOR GAMELOGIC_DEBUG_FOREGROUND_COLOR
+#define GAMELOGIC_DEBUG_LEGEND_2D_CORNER_COLOR vec3(0.5)
+#define GAMELOGIC_DEBUG_GRADIENT_X_COLOR vec3(1.0, 0.0, 0.0)
+#define GAMELOGIC_DEBUG_GRADIENT_Y_COLOR vec3(0.0, 1.0, 0.0)
+#define GAMELOGIC_DEBUG_ROW_COUNT 16.0
+#define GAMELOGIC_DEBUG_REGION_WIDTH_IN_ROWS 4.0
+#define GAMELOGIC_DEBUG_SEPARATOR_WIDTH (2.0 * uRes.y / 1080.)
+#define GAMELOGIC_DEBUG_DIAL_RADIUS 0.85
+#define GAMELOGIC_DEBUG_BAR_MARGIN 0.15
+#define GAMELOGIC_DEBUG_LEGEND_2D_FRAME_WIDTH 0.08
+#define GAMELOGIC_DEBUG_LEGEND_DIRECTION_RADIUS 0.75
+#define GAMELOGIC_DEBUG_LEGEND_DIRECTION_INNER_RIM_WIDTH 0.07
+#define GAMELOGIC_DEBUG_LEGEND_DIRECTION_OUTER_RIM_WIDTH 0.09
+#define GAMELOGIC_DEBUG_LEGEND_DIRECTION_RAY_WIDTH 0.08
+#define GAMELOGIC_DEBUG_LEGEND_DIRECTION_INNER_RIM_TICK_COUNT 36.0
+#define GAMELOGIC_DEBUG_LEGEND_DIRECTION_OUTER_RIM_TICK_COUNT 12.0
+#define GAMELOGIC_DEBUG_DIAL_HUB_WIDTH (4.0 * uRes.y / 1080.)
+#define GAMELOGIC_DEBUG_DIAL_TIP_WIDTH (0.5 * uRes.y / 1080.)
+#define GAMELOGIC_DEBUG_FLOAT_INTEGER_DIGITS 3.0
+#define GAMELOGIC_DEBUG_FLOAT_DECIMAL_PLACES 3.0
+#define GAMELOGIC_DEBUG_FLOAT_CHARACTER_HEIGHT 0.6
+#define GAMELOGIC_DEBUG_MOUSE_RADIUS_IN_ROWS 3.0
+#define RGB1(c) vec4((c), 1.)
+
+uniform vec2 uMouse;
+vec2 debugMousePosition() {
+  return uMouse.x < 0. ? vec2(0.45 + 0.25 * sin(uTime * 0.45), 0.5 + 0.18 * sin(uTime * 0.7 + 1.)) : uMouse;
+}
+
+float debug_row_size_() { return TEXEL_SIZE.w / GAMELOGIC_DEBUG_ROW_COUNT; }
+vec2 debug_pixel_from_top_left_(vec2 uv) {
+  vec2 pixel = floor(uv * TEXEL_SIZE.zw) + 0.5;
+  return vec2(pixel.x, TEXEL_SIZE.w - pixel.y);
+}
+bool debug_cell_(vec2 uv, float grid_row, float row_span, float column_index, float column_count, out vec2 cell_uv) {
+  float row_size = debug_row_size_();
+  vec2 pixel = debug_pixel_from_top_left_(uv);
+  float cell_width = GAMELOGIC_DEBUG_REGION_WIDTH_IN_ROWS * row_size / column_count;
+  vec2 cell_min = vec2(column_index * cell_width, grid_row * row_size);
+  vec2 cell_size = vec2(cell_width, row_span * row_size);
+  vec2 local = (pixel - cell_min) / cell_size;
+  cell_uv = vec2(local.x, 1.0 - local.y);
+  return all(greaterThanEqual(local, vec2(0.))) && all(lessThan(local, vec2(1.)));
+}
+bool debug_corner_legend_cell_(vec2 uv, out vec2 cell_uv) {
+  float size = 2.0 * debug_row_size_();
+  vec2 pixel = debug_pixel_from_top_left_(uv);
+  vec2 local = vec2(pixel.x - (TEXEL_SIZE.z - size), pixel.y) / size;
+  cell_uv = vec2(local.x, 1.0 - local.y);
+  return all(greaterThanEqual(local, vec2(0.))) && all(lessThan(local, vec2(1.)));
+}
+bool debug_is_on_separator_(vec2 cell_uv, float row_span) {
+  return cell_uv.y * row_span * debug_row_size_() < GAMELOGIC_DEBUG_SEPARATOR_WIDTH;
+}
+float debug_coverage_(float signed_distance_in_pixels) { return 1.0 - smoothstep(-0.5, 0.5, signed_distance_in_pixels); }
+float debug_box_distance_(vec2 position, vec2 box_min, vec2 box_max) {
+  vec2 center = 0.5 * (box_min + box_max);
+  vec2 offset = abs(position - center) - 0.5 * (box_max - box_min);
+  return length(max(offset, 0.0)) + min(max(offset.x, offset.y), 0.0);
+}
+vec4 debug_bar_color_(vec2 cell_uv, float fill_start, float fill_end, vec3 bar_color) {
+  float row_size = debug_row_size_();
+  vec2 cell_size = vec2(GAMELOGIC_DEBUG_REGION_WIDTH_IN_ROWS * row_size, row_size);
+  vec2 pixel = cell_uv * cell_size;
+  float margin = GAMELOGIC_DEBUG_BAR_MARGIN * row_size;
+  vec2 track_min = vec2(margin, GAMELOGIC_DEBUG_SEPARATOR_WIDTH + margin);
+  vec2 track_max = cell_size - margin;
+  float track_width = track_max.x - track_min.x;
+  vec2 fill_min = vec2(track_min.x + fill_start * track_width, track_min.y);
+  vec2 fill_max = vec2(track_min.x + fill_end * track_width, track_max.y);
+  float track_coverage = debug_coverage_(debug_box_distance_(pixel, track_min, track_max));
+  float fill_coverage = debug_coverage_(debug_box_distance_(pixel, fill_min, fill_max)) * saturate(fill_max.x - fill_min.x);
+  vec3 result_color = mix(GAMELOGIC_DEBUG_BACKGROUND_COLOR, GAMELOGIC_DEBUG_FACE_COLOR, track_coverage);
+  result_color = mix(result_color, bar_color, fill_coverage);
+  return RGB1(result_color);
+}
+
+// Debug view area: set with #define TOOL_SHOW_AREA_LEFT_HALF or TOOL_SHOW_AREA_MOUSE before this file
+float debug_area_distance_(vec2 uv) {
+#if defined(TOOL_SHOW_AREA_LEFT_HALF)
+  return (uv.x - 0.5) * TEXEL_SIZE.z;
+#elif defined(TOOL_SHOW_AREA_MOUSE)
+  vec2 offset_in_pixels = (uv - debugMousePosition()) * TEXEL_SIZE.zw;
+  return length(offset_in_pixels) - GAMELOGIC_DEBUG_MOUSE_RADIUS_IN_ROWS * debug_row_size_();
+#else
+  return -1.0;
+#endif
+}
+bool debug_view(vec2 uv, vec4 debug_color, out vec4 color) {
+  float distance_to_area = debug_area_distance_(uv);
+  color = debug_color;
+  if (distance_to_area < 0.0) return true;
+  if (distance_to_area < GAMELOGIC_DEBUG_SEPARATOR_WIDTH) { color = RGB1(GAMELOGIC_DEBUG_SEPARATOR_COLOR); return true; }
+  return false;
+}
+
+vec4 debug_legend_color_(float pixel_x, float legend_width, float depth) {
+  float value = floor(pixel_x) / max(floor(legend_width) - 1.0, 1.0);
+  if (depth < 0.5) return vec4(vec3(value), 1);
+  float band_count = depth < 0.75 ? 100.0 : 10.0;
+  float band = min(floor(value * band_count), band_count - 1.0);
+  float stripe = mod(band, 2.0);
+  return RGB1(mix(GAMELOGIC_DEBUG_TICK_DARK_COLOR, GAMELOGIC_DEBUG_TICK_LIGHT_COLOR, stripe));
+}
+bool debug_legend(vec2 uv, out vec4 color) {
+  float row_size = debug_row_size_();
+  vec2 pixel = debug_pixel_from_top_left_(uv);
+  color = vec4(0.);
+  if (pixel.y >= row_size) return false;
+  if (row_size - pixel.y < GAMELOGIC_DEBUG_SEPARATOR_WIDTH) { color = RGB1(GAMELOGIC_DEBUG_SEPARATOR_COLOR); return true; }
+  color = debug_legend_color_(pixel.x, TEXEL_SIZE.z, pixel.y / row_size);
+  return true;
+}
+bool debug_legend_2d(vec2 uv, out vec4 color) {
+  vec2 cell_uv;
+  color = RGB1(GAMELOGIC_DEBUG_BACKGROUND_COLOR);
+  if (!debug_corner_legend_cell_(uv, cell_uv)) return false;
+  float frame_width = GAMELOGIC_DEBUG_LEGEND_2D_FRAME_WIDTH;
+  vec2 value = (cell_uv - frame_width) / (1.0 - 2.0 * frame_width);
+  vec2 is_inside = step(0.0, value) * (1.0 - step(1.0, value));
+  if (is_inside.x * is_inside.y > 0.5) { color = RGB1(value.x * GAMELOGIC_DEBUG_GRADIENT_X_COLOR + value.y * GAMELOGIC_DEBUG_GRADIENT_Y_COLOR); return true; }
+  if (is_inside.x + is_inside.y < 0.5) { color = RGB1(GAMELOGIC_DEBUG_LEGEND_2D_CORNER_COLOR); return true; }
+  float position_along_side = is_inside.x > 0.5 ? value.x : value.y;
+  float tick = min(floor(position_along_side * 10.0), 9.0);
+  color = RGB1(mix(GAMELOGIC_DEBUG_TICK_DARK_COLOR, GAMELOGIC_DEBUG_TICK_LIGHT_COLOR, mod(tick, 2.0)));
+  return true;
+}
+vec3 debug_tick_color_(float position, float tick_count) {
+  float tick = min(floor(position * tick_count), tick_count - 1.0);
+  return mix(GAMELOGIC_DEBUG_TICK_DARK_COLOR, GAMELOGIC_DEBUG_TICK_LIGHT_COLOR, mod(tick, 2.0));
+}
+bool debug_legend_2d_abs(vec2 uv, out vec4 color) {
+  vec2 cell_uv;
+  color = RGB1(GAMELOGIC_DEBUG_BACKGROUND_COLOR);
+  if (!debug_corner_legend_cell_(uv, cell_uv)) return false;
+  float frame_width = GAMELOGIC_DEBUG_LEGEND_2D_FRAME_WIDTH;
+  vec2 position = (cell_uv - frame_width) / (1.0 - 2.0 * frame_width);
+  vec2 is_inside = step(0.0, position) * (1.0 - step(1.0, position));
+  if (is_inside.x * is_inside.y > 0.5) {
+    vec2 value = abs(position * 2.0 - 1.0);
+    color = RGB1(value.x * GAMELOGIC_DEBUG_GRADIENT_X_COLOR + value.y * GAMELOGIC_DEBUG_GRADIENT_Y_COLOR);
+    return true;
+  }
+  if (is_inside.x + is_inside.y < 0.5) { color = RGB1(GAMELOGIC_DEBUG_LEGEND_2D_CORNER_COLOR); return true; }
+  float position_along_side = is_inside.x > 0.5 ? position.x : position.y;
+  color = RGB1(debug_tick_color_(position_along_side, 20.0));
+  return true;
+}
+vec3 debug_direction_color(vec2 value) {
+  float hue = fract(atan(value.y, value.x) / (2.0 * PI));
+  float lightness = saturate(0.5 * length(value));
+  vec3 hue_color = saturate(abs(fract(hue + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0);
+  float chroma = 1.0 - abs(2.0 * lightness - 1.0);
+  return lightness + chroma * (hue_color - 0.5);
+}
+bool debug_legend_direction(vec2 uv, out vec4 color) {
+  vec2 cell_uv;
+  color = RGB1(GAMELOGIC_DEBUG_BACKGROUND_COLOR);
+  if (!debug_corner_legend_cell_(uv, cell_uv)) return false;
+  float pixels_per_unit = debug_row_size_();
+  vec2 position = cell_uv * 2.0 - 1.0;
+  float distance_from_center = length(position);
+  float disk_radius = GAMELOGIC_DEBUG_LEGEND_DIRECTION_RADIUS;
+  float inner_rim_radius = disk_radius + GAMELOGIC_DEBUG_LEGEND_DIRECTION_INNER_RIM_WIDTH;
+  float outer_rim_radius = inner_rim_radius + GAMELOGIC_DEBUG_LEGEND_DIRECTION_OUTER_RIM_WIDTH;
+  float ray_half_width = 0.5 * GAMELOGIC_DEBUG_LEGEND_DIRECTION_RAY_WIDTH;
+  float turns = fract(atan(position.y, position.x) / (2.0 * PI));
+  float radial_position = distance_from_center / disk_radius;
+  float outer_rim_coverage = debug_coverage_((distance_from_center - outer_rim_radius) * pixels_per_unit);
+  float inner_rim_coverage = debug_coverage_((distance_from_center - inner_rim_radius) * pixels_per_unit);
+  float disk_coverage = debug_coverage_((distance_from_center - disk_radius) * pixels_per_unit);
+  float ray_distance = debug_box_distance_(position, vec2(0.0, -ray_half_width), vec2(disk_radius, ray_half_width));
+  float ray_coverage = debug_coverage_(ray_distance * pixels_per_unit);
+  vec3 result_color = mix(GAMELOGIC_DEBUG_BACKGROUND_COLOR, debug_tick_color_(turns, GAMELOGIC_DEBUG_LEGEND_DIRECTION_OUTER_RIM_TICK_COUNT), outer_rim_coverage);
+  result_color = mix(result_color, debug_tick_color_(turns, GAMELOGIC_DEBUG_LEGEND_DIRECTION_INNER_RIM_TICK_COUNT), inner_rim_coverage);
+  result_color = mix(result_color, debug_direction_color(position / disk_radius), disk_coverage);
+  result_color = mix(result_color, debug_tick_color_(radial_position, 10.0), ray_coverage);
+  color = RGB1(result_color);
+  return true;
+}
+bool debug_bar(vec2 uv, float value, float row_index, out vec4 color) {
+  vec2 cell_uv;
+  color = vec4(0.);
+  if (!debug_cell_(uv, row_index + 1., 1., 0., 1., cell_uv)) return false;
+  if (debug_is_on_separator_(cell_uv, 1.)) { color = RGB1(GAMELOGIC_DEBUG_SEPARATOR_COLOR); return true; }
+  bool is_in_range = value >= 0.0 && value <= 1.0;
+  vec3 bar_color = is_in_range ? GAMELOGIC_DEBUG_FOREGROUND_COLOR : GAMELOGIC_DEBUG_OUT_OF_RANGE_COLOR;
+  color = debug_bar_color_(cell_uv, 0.0, saturate(value), bar_color);
+  return true;
+}
+bool debug_signed_bar(vec2 uv, float value, float row_index, out vec4 color) {
+  vec2 cell_uv;
+  color = vec4(0.);
+  if (!debug_cell_(uv, row_index + 1., 1., 0., 1., cell_uv)) return false;
+  if (debug_is_on_separator_(cell_uv, 1.)) { color = RGB1(GAMELOGIC_DEBUG_SEPARATOR_COLOR); return true; }
+  float fill_end = 0.5 + 0.5 * clamp(value, -1.0, 1.0);
+  bool is_in_range = abs(value) <= 1.0;
+  vec3 bar_color = is_in_range ? GAMELOGIC_DEBUG_FOREGROUND_COLOR : GAMELOGIC_DEBUG_OUT_OF_RANGE_COLOR;
+  color = debug_bar_color_(cell_uv, min(0.5, fill_end), max(0.5, fill_end), bar_color);
+  return true;
+}
+bool debug_dial(vec2 uv, float value, float row_index, float column_index, out vec4 color) {
+  vec2 cell_uv;
+  color = vec4(0.);
+  if (!debug_cell_(uv, row_index + 1., 2., column_index, 2., cell_uv)) return false;
+  if (debug_is_on_separator_(cell_uv, 2.)) { color = RGB1(GAMELOGIC_DEBUG_SEPARATOR_COLOR); return true; }
+  float radius_in_pixels = GAMELOGIC_DEBUG_DIAL_RADIUS * debug_row_size_();
+  vec2 position = (cell_uv * 2.0 - 1.0) / GAMELOGIC_DEBUG_DIAL_RADIUS;
+  float distance_from_center = length(position);
+  float face_coverage = debug_coverage_((distance_from_center - 1.0) * radius_in_pixels);
+  float pixel_turns = fract(atan(position.y, position.x) / (2.0 * PI));
+  float turn_difference = abs(fract(pixel_turns - value + 0.5) - 0.5);
+  float distance_to_needle_in_pixels = turn_difference * 2.0 * PI * distance_from_center * radius_in_pixels;
+  float needle_width = mix(GAMELOGIC_DEBUG_DIAL_HUB_WIDTH, GAMELOGIC_DEBUG_DIAL_TIP_WIDTH, distance_from_center);
+  float needle_coverage = debug_coverage_(distance_to_needle_in_pixels - needle_width);
+  vec3 needle_color = value < 0.0 ? GAMELOGIC_DEBUG_OUT_OF_RANGE_LOW_COLOR
+    : (value > 1.0 ? GAMELOGIC_DEBUG_OUT_OF_RANGE_HIGH_COLOR : GAMELOGIC_DEBUG_FOREGROUND_COLOR);
+  vec3 face_color = mix(GAMELOGIC_DEBUG_FACE_COLOR, needle_color, needle_coverage);
+  color = RGB1(mix(GAMELOGIC_DEBUG_BACKGROUND_COLOR, face_color, face_coverage));
+  return true;
+}
+// Number printing adapted from "Smaller Numbers" by P_Malin (CC0), as in the package
+const float debug_digit_bitmaps[10] = float[10](480599.0, 139810.0, 476951.0, 476999.0, 350020.0, 464711.0, 464727.0, 476228.0, 481111.0, 481095.0);
+#define GAMELOGIC_DEBUG_MINUS_BITMAP 1792.0
+#define GAMELOGIC_DEBUG_DECIMAL_POINT_BITMAP 2.0
+float debug_print_value_(vec2 string_coords, float value, float integer_digits, float decimal_places) {
+  if (string_coords.y < 0.0 || string_coords.y >= 1.0) return 0.0;
+  bool is_negative = value < 0.0;
+  value = abs(value);
+  float biggest_index = max(floor(log2(value) / log2(10.0)), 0.0);
+  float digit_index = integer_digits - floor(string_coords.x);
+  float character_bitmap = 0.0;
+  if (digit_index > -decimal_places - 1.01) {
+    if (digit_index > biggest_index) {
+      if (is_negative && digit_index < biggest_index + 1.5) character_bitmap = GAMELOGIC_DEBUG_MINUS_BITMAP;
+    } else if (digit_index == -1.0) {
+      if (decimal_places > 0.0) character_bitmap = GAMELOGIC_DEBUG_DECIMAL_POINT_BITMAP;
+    } else {
+      float reduced_value = value;
+      if (digit_index < 0.0) { reduced_value = fract(value); digit_index += 1.0; }
+      float digit_value = abs(reduced_value / pow(10.0, digit_index));
+      int digit = clamp(int(floor(mod(digit_value, 10.0))), 0, 9);
+      character_bitmap = debug_digit_bitmaps[digit];
+    }
+  }
+  float bit_index = floor(fract(string_coords.x) * 4.0) + floor(string_coords.y * 5.0) * 4.0;
+  return floor(mod(character_bitmap / pow(2.0, bit_index), 2.0));
+}
+bool debug_float(vec2 uv, float value, float row_index, out vec4 color) {
+  vec2 cell_uv;
+  color = vec4(0.);
+  if (!debug_cell_(uv, row_index + 1., 1., 0., 1., cell_uv)) return false;
+  if (debug_is_on_separator_(cell_uv, 1.)) { color = RGB1(GAMELOGIC_DEBUG_SEPARATOR_COLOR); return true; }
+  float row_size = debug_row_size_();
+  vec2 pixel = cell_uv * vec2(GAMELOGIC_DEBUG_REGION_WIDTH_IN_ROWS * row_size, row_size);
+  float character_height = GAMELOGIC_DEBUG_FLOAT_CHARACTER_HEIGHT * row_size;
+  float character_width = character_height * 0.8;
+  float text_bottom = GAMELOGIC_DEBUG_SEPARATOR_WIDTH + 0.5 * (row_size - GAMELOGIC_DEBUG_SEPARATOR_WIDTH - character_height);
+  float margin = GAMELOGIC_DEBUG_BAR_MARGIN * row_size;
+  vec2 string_coords = vec2(pixel.x - margin, pixel.y - text_bottom) / vec2(character_width, character_height);
+  float is_on_digit = debug_print_value_(string_coords, value, GAMELOGIC_DEBUG_FLOAT_INTEGER_DIGITS, GAMELOGIC_DEBUG_FLOAT_DECIMAL_PLACES);
+  float integer_digit_count = GAMELOGIC_DEBUG_FLOAT_INTEGER_DIGITS + (value < 0.0 ? 0.0 : 1.0);
+  bool is_in_range = abs(value) < pow(10.0, integer_digit_count);
+  vec3 digit_color = is_in_range ? GAMELOGIC_DEBUG_FOREGROUND_COLOR : GAMELOGIC_DEBUG_OUT_OF_RANGE_COLOR;
+  color = RGB1(mix(GAMELOGIC_DEBUG_BACKGROUND_COLOR, digit_color, is_on_digit));
+  return true;
+}
+#define DEBUG_VIEW(uv, debug_color) { vec4 c_; if (debug_view((uv), (debug_color), c_)) return c_; }
+#define DEBUG_DISPLAY_LEGEND(uv) { vec4 c_; if (debug_legend((uv), c_)) return c_; }
+#define DEBUG_DISPLAY_LEGEND_2D(uv) { vec4 c_; if (debug_legend_2d((uv), c_)) return c_; }
+#define DEBUG_DISPLAY_LEGEND_2D_ABS(uv) { vec4 c_; if (debug_legend_2d_abs((uv), c_)) return c_; }
+#define DEBUG_DISPLAY_LEGEND_DIRECTION(uv) { vec4 c_; if (debug_legend_direction((uv), c_)) return c_; }
+#define DEBUG_DISPLAY_BAR(uv, value, row_index) { vec4 c_; if (debug_bar((uv), (value), float(row_index), c_)) return c_; }
+#define DEBUG_DISPLAY_SIGNED_BAR(uv, value, row_index) { vec4 c_; if (debug_signed_bar((uv), (value), float(row_index), c_)) return c_; }
+#define DEBUG_DISPLAY_DIAL(uv, value, row_index, column_index) { vec4 c_; if (debug_dial((uv), (value), float(row_index), float(column_index), c_)) return c_; }
+#define DEBUG_DISPLAY_FLOAT(uv, value, row_index) { vec4 c_; if (debug_float((uv), (value), float(row_index), c_)) return c_; }
+`;
+
+// ---- forest renderer: the UDD2026 ForestScene (forest-scene.js, window.ForestScene) -----------------------------
+// Pass 1 renders a shadow map for the main light, pass 2 the lit scene, the object IDs and the world normals into
+// textures (like URP's camera color, an ID map and _CameraNormalsTexture), pass 3 runs the demo's fragment shader
+// over them like one of the Fx post processes.
+const FOREST_SCENE_VS = `#version 300 es
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNrm;
+layout(location = 2) in vec3 aAlb;
+layout(location = 3) in vec4 aId;
+uniform mat4 uVP, uModel, uLightVP;
+out vec3 vN, vAlb, vWorld;
+out vec4 vLight;
+flat out vec4 vId;
+void main() {
+  vec4 w = uModel * vec4(aPos, 1.);
+  vWorld = w.xyz;
+  vN = mat3(uModel) * aNrm;
+  vAlb = aAlb;
+  vId = aId;
+  vLight = uLightVP * w;
+  gl_Position = uVP * w;
+}
+`;
+
+const FOREST_SCENE_FS = `#version 300 es
+precision highp float;
+precision highp sampler2DShadow;
+in vec3 vN, vAlb, vWorld;
+in vec4 vLight;
+flat in vec4 vId;
+uniform vec3 uLightDir[4], uLightColor[4], uEye;
+uniform sampler2DShadow uShadow;
+layout(location = 0) out vec4 outLit;
+layout(location = 1) out vec4 outId;
+layout(location = 2) out vec4 outNormal;
+float shadow(vec3 n) {
+  vec3 p = vLight.xyz / vLight.w * 0.5 + 0.5;
+  if (any(lessThan(p, vec3(0.))) || any(greaterThan(p, vec3(1.)))) return 1.;
+  vec2 t = 1.5 / vec2(textureSize(uShadow, 0));
+  float bias = 0.0006 + 0.0015 * (1. - abs(dot(n, uLightDir[0])));
+  float s = 0.;
+  for (int y = -2; y <= 2; y++)
+    for (int x = -2; x <= 2; x++) s += texture(uShadow, vec3(p.xy + vec2(x, y) * t, p.z - bias));
+  return s / 25.;
+}
+void main() {
+  vec3 n = normalize(vN);
+  if (!gl_FrontFacing) n = -n;
+  outId = vec4(vId.xyz / 255., 1.);
+  // world normals in Unity's (left-handed) axes, packed like the normals texture the outline samples
+  outNormal = vec4(vec3(n.x, n.y, -n.z) * 0.5 + 0.5, 1.);
+  vec3 alb = pow(vAlb, vec3(2.2));
+  vec3 v = normalize(uEye - vWorld);
+  vec3 light = mix(vec3(0.12, 0.13, 0.12), vec3(0.32, 0.39, 0.50), n.y * 0.5 + 0.5);
+  vec3 spec = vec3(0.);
+  for (int i = 0; i < 4; i++) {
+    float ndl = max(dot(n, uLightDir[i]), 0.);
+    if (i == 0) ndl *= shadow(n);
+    light += uLightColor[i] * ndl;
+    spec += uLightColor[i] * pow(max(dot(n, normalize(uLightDir[i] + v)), 0.), 32.) * 0.12 * ndl;
+  }
+  // the Sun is lit too, with an emission close to its base colour (Sun.mat), so its lit side is brighter
+  vec3 c = alb * light + spec + (vId.w > 0.5 ? alb * 0.85 : vec3(0.));
+  outLit = vec4(pow(clamp(c, 0., 1.), vec3(1. / 2.2)), 1.);
+}
+`;
+
+const FOREST_DEPTH_FS = `#version 300 es
+precision highp float;
+void main() {}
+`;
+
+// Helpers for the forest post shaders, ported from za.co.gamelogic.fx (Gamelogic.hlsl, Pixelate, Simple Outline)
+// and the UDD2026 effects (Flow Blur, Threshold). The debug displays come from GAMELOGIC_DEBUG.
+const FOREST_LIB = `
+uniform sampler2D uScene;
+uniform sampler2D uIds;
+uniform sampler2D uNormals;
+#define SQRT_3_OVER_2 0.8660254037844
+vec4 sceneAt(vec2 uv) { return texture(uScene, uv); }
+// R = renderer index, G = ID % 6, B = ID % 8 (IDs hashed per renderer, like UDD2026 MapIds)
+ivec3 objectInfo(vec2 uv) { return ivec3(texture(uIds, uv).rgb * 255. + 0.5); }
+float to_luminosity(vec3 color) { return dot(color, vec3(0.299, 0.587, 0.114)); }
+vec2 rotate(vec2 uv, float angle) {
+  float cos_a = cos(angle), sin_a = sin(angle);
+  return vec2(uv.x * cos_a - uv.y * sin_a, uv.x * sin_a + uv.y * cos_a);
+}
+ivec2 pointy_hex_world_to_grid(vec2 world, vec2 cell_dims) {
+  float hex_size = cell_dims.y * 0.5;
+  float y = world.y / hex_size;
+  float x = world.x / cell_dims.x;
+  float ti = floor(-x + y);
+  float tj = floor(x + y);
+  float tk = floor(-2. * x);
+  float hi0 = floor((ti + tk + 2.) / 3.);
+  float hj0 = floor((tj - tk + 1.) / 3.);
+  float hk0 = hi0 + hj0;
+  return ivec2(int(-hi0), int(hk0));
+}
+vec2 pointy_hex_grid_to_world(ivec2 grid, vec2 cell_dims) {
+  float hex_size = cell_dims.y * 0.5;
+  return vec2((float(grid.x) + float(grid.y) / 2.) * cell_dims.x, float(grid.y) * (1.5 * hex_size));
+}
+
+// Pixelate (HEX_GRID): 3x3 supersampled hex cells in a grid rotated by grid_angle. Pixel Size is 32 at 1080 lines,
+// as in the talk's renderer, scaled with the canvas so the cells look the same at any size.
+struct PixelateResult { vec4 color; float cell_distance; vec2 cell_dimensions; };
+PixelateResult pixelate(vec2 uv, float grid_angle) {
+  PixelateResult r;
+  vec2 cell_dimensions = vec2(32.) * TEXEL_SIZE.w / 1080.;
+  cell_dimensions.x *= SQRT_3_OVER_2;
+  vec2 screen_center = TEXEL_SIZE.zw * 0.5;
+  vec2 world_point = uv * TEXEL_SIZE.zw - screen_center;
+  vec2 world_step = vec2(1.);
+  vec2 grid_space_point = rotate(world_point, -grid_angle);
+  ivec2 center_grid_point = pointy_hex_world_to_grid(grid_space_point, cell_dimensions);
+  vec2 center_cell_center = pointy_hex_grid_to_world(center_grid_point, cell_dimensions);
+  float cell_corner_distance = cell_dimensions.y * 0.5;
+  vec4 sum = vec4(0.);
+  for (int j = 0; j < 3; j++)
+    for (int i = 0; i < 3; i++) {
+      vec2 offset = (vec2(i, j) + 0.5) / 3. - 0.5;
+      vec2 sample_point = world_point + offset * world_step;
+      ivec2 grid_point = pointy_hex_world_to_grid(rotate(sample_point, -grid_angle), cell_dimensions);
+      vec2 hex_center = pointy_hex_grid_to_world(grid_point, cell_dimensions);
+      sum += sceneAt((rotate(hex_center, grid_angle) + screen_center) * TEXEL_SIZE.xy);
+    }
+  r.color = sum / 9.;
+  r.cell_distance = length(grid_space_point - center_cell_center) / max(cell_corner_distance, 1e-5);
+  r.cell_dimensions = cell_dimensions;
+  return r;
+}
+
+// Simple Outline with the talk's settings: Outline Source = normals texture, Jump Size 2, Edge Factor 1,
+// Threshold 1, Line Color (0, 0.085, 0.135), Background Color alpha 0 (so the image shows through)
+#define OUTLINE_JUMP_SIZE 2.
+#define OUTLINE_EDGE_FACTOR 1.
+#define OUTLINE_THRESHOLD 1.
+#define OUTLINE_LINE_COLOR vec4(0., 0.08512431, 0.135, 1.)
+vec3 outline_sample(vec2 uv, vec2 offset, vec2 offset_size) { return texture(uNormals, uv + offset * offset_size).rgb; }
+float outline_edge(vec2 uv) {
+  vec2 offset_size = OUTLINE_JUMP_SIZE * TEXEL_SIZE.xy;
+  vec3 s0 = outline_sample(uv, vec2(-1, -1), offset_size), s1 = outline_sample(uv, vec2(0, -1), offset_size), s2 = outline_sample(uv, vec2(1, -1), offset_size);
+  vec3 s3 = outline_sample(uv, vec2(-1, 0), offset_size), s5 = outline_sample(uv, vec2(1, 0), offset_size);
+  vec3 s6 = outline_sample(uv, vec2(-1, 1), offset_size), s7 = outline_sample(uv, vec2(0, 1), offset_size), s8 = outline_sample(uv, vec2(1, 1), offset_size);
+  vec3 sum_x = -s0 + s2 - 2. * s3 + 2. * s5 - s6 + s8;
+  vec3 sum_y = -s0 - 2. * s1 - s2 + s6 + 2. * s7 + s8;
+  return sqrt(dot(sum_x, sum_x) + dot(sum_y, sum_y)) * OUTLINE_EDGE_FACTOR;
+}
+vec4 outline_result(vec2 uv, float edge) {
+  vec4 color = sceneAt(uv);
+  return edge > OUTLINE_THRESHOLD ? mix(color, OUTLINE_LINE_COLOR, OUTLINE_LINE_COLOR.a) : color;
+}
+
+// Flow Blur (UDD2026): Sobel gradient of the luminosity, Gradient Jump Size 1, Gradient Threshold 0.01,
+// Default Flow Direction (1, 0)
+float flow_luminosity(vec2 uv) { return to_luminosity(sceneAt(uv).rgb); }
+vec2 sobel_gradient(vec2 uv) {
+  vec2 offset = TEXEL_SIZE.xy;
+  float top_left = flow_luminosity(uv + vec2(-offset.x, offset.y)), top = flow_luminosity(uv + vec2(0, offset.y)), top_right = flow_luminosity(uv + offset);
+  float left = flow_luminosity(uv - vec2(offset.x, 0)), right = flow_luminosity(uv + vec2(offset.x, 0));
+  float bottom_left = flow_luminosity(uv - offset), bottom = flow_luminosity(uv - vec2(0, offset.y)), bottom_right = flow_luminosity(uv + vec2(offset.x, -offset.y));
+  return vec2((top_right + 2. * right + bottom_right) - (top_left + 2. * left + bottom_left),
+    (top_left + 2. * top + top_right) - (bottom_left + 2. * bottom + bottom_right));
+}
+vec2 flow_direction(vec2 uv) {
+  vec2 gradient = sobel_gradient(uv);
+  float gradient_strength = length(gradient);
+  if (gradient_strength < 0.01) return vec2(1., 0.);
+  vec2 d = gradient / gradient_strength;
+  return vec2(-d.y, d.x);
+}
+`;
+
+function createForestRenderer() {
+  const S = window.ForestScene;
+  if (!S) { console.error('[shader-demos] forest-scene.js not loaded'); return null; }
+  const canvas = document.createElement('canvas');
+  const gl = canvas.getContext('webgl2', {
+    antialias: false, alpha: false, depth: true, stencil: false,
+    preserveDrawingBuffer: false, powerPreference: 'high-performance'
+  });
+  if (!gl) return null;
+
+  function compile(type, src, name) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error('[shader-demos] ' + name + ':\n' + gl.getShaderInfoLog(s)); return null; }
+    return s;
+  }
+  function link(vs, fs, name) {
+    if (!vs || !fs) return null;
+    const p = gl.createProgram();
+    gl.attachShader(p, vs);
+    gl.attachShader(p, fs);
+    gl.bindAttribLocation(p, 0, 'aPos');
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) { console.error('[shader-demos] ' + name + ':\n' + gl.getProgramInfoLog(p)); return null; }
+    return p;
+  }
+  const sceneVS = compile(gl.VERTEX_SHADER, FOREST_SCENE_VS, 'forest vs');
+  const sceneProg = link(sceneVS, compile(gl.FRAGMENT_SHADER, FOREST_SCENE_FS, 'forest fs'), 'forest');
+  const depthProg = link(sceneVS, compile(gl.FRAGMENT_SHADER, FOREST_DEPTH_FS, 'forest depth'), 'forest depth');
+  const postVS = compile(gl.VERTEX_SHADER, VS, 'forest post vs');
+  if (!sceneProg || !depthProg || !postVS) return null;
+  const U = (p, n) => gl.getUniformLocation(p, n);
+
+  const dec = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  function geometry(G) {
+    const pos = new Float32Array(dec(G.pos).buffer);
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    [[0, pos, 3, gl.FLOAT, false], [1, new Int8Array(dec(G.nrm).buffer), 3, gl.BYTE, true],
+     [2, dec(G.alb), 3, gl.UNSIGNED_BYTE, true], [3, dec(G.id), 4, gl.UNSIGNED_BYTE, false]].forEach(([loc, data, n, type, norm]) => {
+      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+      gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, n, type, norm, 0, 0);
+    });
+    gl.bindVertexArray(null);
+    return { vao, count: pos.length / 3 };
+  }
+  const still = geometry(S.A), blades = geometry(S.B);
+
+  // the shadow box covers the visible part of the forest: 14 m around a point 11 m in front of the camera
+  const lightDir = S.lights.map(l => l.dir), lightColor = S.lights.map(l => l.color);
+  const sun = lightDir[0];
+  const viewInv = invertRigid(S.view);
+  const eye = [viewInv[12], viewInv[13], viewInv[14]];
+  const fwd = [-viewInv[8], -viewInv[9], -viewInv[10]];
+  const ctr = [eye[0] + fwd[0] * 11, 1, eye[2] + fwd[2] * 11];
+  const radius = 14;
+  const lightVP = mat4Mul(ortho(radius, radius * 4), lookAt([ctr[0] + sun[0], ctr[1] + sun[1], ctr[2] + sun[2]], ctr));
+  const IDENTITY = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+
+  const SHADOW = 4096;
+  const shadowTex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, shadowTex);
+  gl.texStorage2D(gl.TEXTURE_2D, 1, gl.DEPTH_COMPONENT24, SHADOW, SHADOW);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const shadowFB = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFB);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, shadowTex, 0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+  let fb = null, textures = [], depthRB, fbW = 0, fbH = 0;
+  function targets(w, h) {
+    if (w === fbW && h === fbH) return;
+    if (fb) { gl.deleteFramebuffer(fb); textures.forEach(t => gl.deleteTexture(t)); gl.deleteRenderbuffer(depthRB); }
+    fbW = w; fbH = h;
+    textures = [0, 1, 2].map(() => {
+      const t = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, w, h);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      return t;
+    });
+    depthRB = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthRB);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, w, h);
+    fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    textures.forEach((t, i) => gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.TEXTURE_2D, t, 0));
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthRB);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  const quad = gl.createVertexArray();
+  gl.bindVertexArray(quad);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  gl.bindVertexArray(null);
+
+  const programs = {};
+  function program(name, spec) {
+    if (programs[name]) return programs[name];
+    const src = HEADER + '#define FIT_W 1.1\n' + (spec.defines || '') + LIB + GAMELOGIC_DEBUG + FOREST_LIB + spec.fs + MAIN;
+    const p = link(postVS, compile(gl.FRAGMENT_SHADER, src, name), name);
+    const e = p ? { prog: p, uRes: U(p, 'uRes'), uTime: U(p, 'uTime'), uParam: U(p, 'uParam'), uMouse: U(p, 'uMouse'),
+      uScene: U(p, 'uScene'), uIds: U(p, 'uIds'), uNormals: U(p, 'uNormals') } : { error: true };
+    programs[name] = e;
+    return e;
+  }
+
+  function drawScene(prog, vp, bladeAngle) {
+    const c = Math.cos(bladeAngle), s = Math.sin(bladeAngle);
+    const spin = new Float32Array([1, 0, 0, 0, 0, c, s, 0, 0, -s, c, 0, 0, 0, 0, 1]);
+    gl.uniformMatrix4fv(U(prog, 'uVP'), false, vp);
+    gl.uniformMatrix4fv(U(prog, 'uModel'), false, IDENTITY);
+    gl.bindVertexArray(still.vao);
+    gl.drawArrays(gl.TRIANGLES, 0, still.count);
+    gl.uniformMatrix4fv(U(prog, 'uModel'), false, mat4Mul(new Float32Array(S.bladeM), spin));
+    gl.bindVertexArray(blades.vao);
+    gl.drawArrays(gl.TRIANGLES, 0, blades.count);
+  }
+
+  function render(name, spec, w, h, time, param, el) {
+    const e = program(name, spec);
+    if (e.error) return false;
+    if (canvas.width < w || canvas.height < h) {
+      canvas.width = Math.max(canvas.width, w);
+      canvas.height = Math.max(canvas.height, h);
+    }
+    // the windmill blades turn once every 4 seconds
+    const bladeAngle = -time / 4 * Math.PI * 2;
+    gl.enable(gl.DEPTH_TEST);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFB);
+    gl.viewport(0, 0, SHADOW, SHADOW);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(depthProg);
+    gl.uniformMatrix4fv(U(depthProg, 'uLightVP'), false, lightVP);
+    drawScene(depthProg, lightVP, bladeAngle);
+
+    targets(w, h);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.viewport(0, 0, w, h);
+    // camera background (Solid Color, Azure), no object (ID 0), and a zero normal (0.5 when packed)
+    gl.clearBufferfv(gl.COLOR, 0, new Float32Array([0.008, 0.592, 0.996, 1]));
+    gl.clearBufferfv(gl.COLOR, 1, new Float32Array([0, 0, 0, 1]));
+    gl.clearBufferfv(gl.COLOR, 2, new Float32Array([0.5, 0.5, 0.5, 1]));
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(sceneProg);
+    const vp = mat4Mul(perspective(S.fov * Math.PI / 180, w / h, 0.3, 1000), new Float32Array(S.view));
+    gl.uniformMatrix4fv(U(sceneProg, 'uLightVP'), false, lightVP);
+    gl.uniform3fv(U(sceneProg, 'uLightDir'), new Float32Array(lightDir.flat()));
+    gl.uniform3fv(U(sceneProg, 'uLightColor'), new Float32Array(lightColor.flat()));
+    gl.uniform3fv(U(sceneProg, 'uEye'), eye);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, shadowTex);
+    gl.uniform1i(U(sceneProg, 'uShadow'), 0);
+    drawScene(sceneProg, vp, bladeAngle);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.disable(gl.DEPTH_TEST);
+    gl.viewport(0, 0, w, h);
+    gl.useProgram(e.prog);
+    gl.uniform2f(e.uRes, w, h);
+    gl.uniform1f(e.uTime, time);
+    gl.uniform1f(e.uParam, param);
+    const m = el && el._mouse && performance.now() - el._mouse.t < 4000 ? el._mouse : null;
+    gl.uniform2f(e.uMouse, m ? m.x : -1, m ? m.y : -1);
+    [[e.uScene, 0], [e.uIds, 1], [e.uNormals, 2]].forEach(([loc, i]) => {
+      gl.activeTexture(gl.TEXTURE0 + i);
+      gl.bindTexture(gl.TEXTURE_2D, textures[i]);
+      gl.uniform1i(loc, i);
+    });
+    gl.bindVertexArray(quad);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.bindVertexArray(null);
+    return true;
+  }
+
+  return { canvas, gl, program, render };
+}
+
+function ortho(r, depth) {
+  return new Float32Array([1 / r, 0, 0, 0, 0, 1 / r, 0, 0, 0, 0, -1 / depth, 0, 0, 0, 0, 1]);
+}
+
+// a view matrix looking from eye towards target, centred on the target (for the orthographic shadow box)
+function lookAt(eye, target) {
+  const norm = v => { const l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; };
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const f = norm([target[0] - eye[0], target[1] - eye[1], target[2] - eye[2]]);
+  const r = norm(cross(f, [0, 1, 0]));
+  const u = cross(r, f);
+  const t = target;
+  return new Float32Array([r[0], u[0], -f[0], 0, r[1], u[1], -f[1], 0, r[2], u[2], -f[2], 0, -dot(r, t), -dot(u, t), dot(f, t), 1]);
+}
+
+function invertRigid(m) {
+  const r = [m[0], m[4], m[8], m[1], m[5], m[9], m[2], m[6], m[10]];
+  const t = [m[12], m[13], m[14]];
+  return [r[0], r[1], r[2], 0, r[3], r[4], r[5], 0, r[6], r[7], r[8], 0,
+    -(r[0] * t[0] + r[3] * t[1] + r[6] * t[2]), -(r[1] * t[0] + r[4] * t[1] + r[7] * t[2]), -(r[2] * t[0] + r[5] * t[1] + r[8] * t[2]), 1];
+}
+
+let forestRenderer;
+
 let meshRenderer;
 
 const MAX_PIXELS = 1.1e6;
@@ -1432,7 +2299,8 @@ function drawCanvas(r, el, time) {
   const ctx = el._ctx || (el._ctx = el.getContext('2d'));
   let rr = r;
   if (spec.scene) rr = meshRenderer === undefined ? (meshRenderer = createMeshRenderer()) : meshRenderer;
-  if (!rr || !rr.render(el.dataset.demo, spec, w, h, time, parseFloat(el.dataset.param || '0'))) {
+  if (spec.forest) rr = forestRenderer === undefined ? (forestRenderer = createForestRenderer()) : forestRenderer;
+  if (!rr || !rr.render(el.dataset.demo, spec, w, h, time, parseFloat(el.dataset.param || '0'), el)) {
     ctx.fillStyle = '#2a0d0d';
     ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = '#ff8a7a';
@@ -1455,6 +2323,13 @@ function start(getSlide) {
     });
     return;
   }
+  // forest demos can follow the mouse (uMouse, in uv); it is forgotten 4 s after the last move
+  all.filter(el => DEMOS[el.dataset.demo] && DEMOS[el.dataset.demo].forest).forEach(el => {
+    el.addEventListener('pointermove', e => {
+      const b = el.getBoundingClientRect();
+      el._mouse = { x: (e.clientX - b.left) / b.width, y: 1 - (e.clientY - b.top) / b.height, t: performance.now() };
+    });
+  });
   const t0 = performance.now();
   function frame(now) {
     const slide = getSlide();
@@ -1468,7 +2343,7 @@ function start(getSlide) {
   (function warm() {
     if (i >= names.length) return;
     const n = names[i++];
-    if (DEMOS[n] && !DEMOS[n].scene) r.program(n, DEMOS[n]);
+    if (DEMOS[n] && !DEMOS[n].scene && !DEMOS[n].forest) r.program(n, DEMOS[n]);
     setTimeout(warm, 40);
   })();
 }

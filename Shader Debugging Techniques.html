@@ -687,7 +687,7 @@ return float4(rgb, 1);
 			<!-- Encoding values as color -->
 			<section data-section="Encodings">
 				<div class="frame one">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/complex_example.png" alt="Escena con varias vistas de debug a la vez: barras, diales y números"></div>
+					<div class="media"><canvas data-demo="forest_pixelate_complex"></canvas></div>
 				</div>
 				<aside class="notes">
 					[Herman] Usually, there is no simple way to examine the value of a variable. Therefore, it is common
@@ -695,10 +695,18 @@ return float4(rgb, 1);
 				</aside>
 			</section>
 
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
+				<div class="frame one">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/complex_example.png" alt="Escena con varias vistas de debug a la vez: barras, diales y números"></div>
+				</div>
+				<aside class="notes">[Backup] Unity capture of the slide before.</aside>
+			</section>
+
 			<!-- Full screen -->
 			<section>
 				<div class="frame">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_fullscreen.png" alt="Valor del detector de bordes mostrado a pantalla completa"></div>
+					<div class="media"><canvas data-demo="forest_edge"></canvas></div>
 					<div class="panel code">
 						<pre data-hl="16-18"><code class="language-cpp" data-trim><script type="text/template">
 float4 Frag(v2f input) : SV_Target
@@ -733,6 +741,41 @@ float4 Frag(v2f input) : SV_Target
 				</aside>
 			</section>
 
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_fullscreen.png" alt="Valor del detector de bordes mostrado a pantalla completa"></div>
+					<div class="panel code">
+						<pre data-hl="16-18"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 uv = input.uv;
+    float2 offset = _MainTex_TexelSize.xy * _JumpSize;
+
+    float3 pixel00 = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
+    float3 pixel10 = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
+    // etc...
+
+
+    float3 gradient_x = (pixel22 + 2 * pixel21 + pixel20) - (pixel02 + 2 * pixel01 + pixel00);
+    float3 gradient_y = (pixel02 + 2 * pixel12 + pixel22) - (pixel00 + 2 * pixel10 + pixel20);
+
+    float gradient = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
+
+#if TOOL_SHOW_GRADIENT
+    return float4(gradient.xxx, 1);
+#endif
+
+    float4 color = tex2D(_MainTex, uv);
+
+    return gradient > _Threshold ? _LineColor : color;
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">[Backup] Unity capture of the slide before.</aside>
+			</section>
+
 			<!-- Float as color -->
 			<section>
 				<div class="frame one">
@@ -749,6 +792,28 @@ float4 Frag(v2f input) : SV_Target
 
 			<!-- Float as color · color map texture · Viridis -->
 			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="forest_viridis"></canvas>
+						<div class="cap">Viridis</div>
+					</div>
+					<div class="panel code">
+						<pre data-hl="6"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float4 color = tex2D(_MainTex, input.uv);
+    float t = (color.r + color.g + color.b) / 3.0;
+
+    float3 mapped_color = tex2D(_ColorMapTex, float2(t, 0.5)).rgb;
+
+    return float4(mapped_color, color.a);
+}
+  </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/viridis.png" alt="Escena con la luminancia mapeada a Viridis">
 						<div class="cap">Viridis</div>
@@ -772,6 +837,28 @@ float4 Frag(v2f input) : SV_Target
 			<!-- Float as color · color map texture · Turbo -->
 			<section>
 				<div class="frame">
+					<div class="media"><canvas data-demo="forest_turbo"></canvas>
+						<div class="cap">Turbo</div>
+					</div>
+					<div class="panel code">
+						<pre data-hl="6"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float4 color = tex2D(_MainTex, input.uv);
+    float t = (color.r + color.g + color.b) / 3.0;
+
+    float3 mapped_color = tex2D(_ColorMapTex, float2(t, 0.5)).rgb;
+
+    return float4(mapped_color, color.a);
+}
+  </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
+				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/turbo.png" alt="Escena con la luminancia mapeada a Turbo">
 						<div class="cap">Turbo</div>
 					</div>
@@ -794,7 +881,7 @@ float4 Frag(v2f input) : SV_Target
 			<!-- Float as color · cosine palette -->
 			<section>
 				<div class="frame">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/cosine.png" alt="Escena con la luminancia mapeada a una paleta coseno">
+					<div class="media"><canvas data-demo="forest_cosine"></canvas>
 						<div class="cap">Cosine palette</div>
 					</div>
 					<div class="panel code">
@@ -821,8 +908,69 @@ float4 Frag(v2f input) : SV_Target
 				</aside>
 			</section>
 
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/cosine.png" alt="Escena con la luminancia mapeada a una paleta coseno">
+						<div class="cap">Cosine palette</div>
+					</div>
+					<div class="panel code">
+						<pre data-hl="6-11"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float4 color = tex2D(_MainTex, input.uv);
+    float t = (color.r + color.g + color.b) / 3.0;
+
+    float3 offset = float3(0.5, 0.5, 0.5);
+    float3 amplitude = float3(0.5, 0.5, 0.5);
+    float3 frequency = float3(1.0, 2.0, 1.0);
+    float3 phase = float3(0.6, 0.2, 0.2);
+
+    float3 mapped_color = offset + amplitude * cos(2.0 * PI * (frequency * t + phase));
+
+    return float4(mapped_color, color.a);
+}
+  </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">[Backup] Unity capture of the slide before.</aside>
+			</section>
+
 			<!-- Float as a bar -->
 			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="forest_pixelate_bar"></canvas></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+bool debug_signed_bar(float2 uv, float value, int row, out float4 color)
+{
+    float2 cell_uv;
+    color = 0;
+
+    if (!debug_cell(uv, row, 1, 0, 1, cell_uv))
+    {
+        return false;
+    }
+
+    float position = cell_uv.x * 2.0 - 1.0;
+    float clamped_value = clamp(value, -1.0, 1.0);
+
+    bool is_on_bar = clamped_value >= 0.0
+        ? position >= 0.0 && position < clamped_value
+        : position < 0.0 && position >= clamped_value;
+
+    float3 bar_color = abs(value) <= 1.0 ? FOREGROUND_COLOR : OUT_OF_RANGE_COLOR;
+
+    color = float4(is_on_bar ? bar_color : BACKGROUND_COLOR, 1);
+    return true;
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/bar.png" alt="Barra de debug con signo sobre la escena pixelada"></div>
 					<div class="panel code">
@@ -856,6 +1004,47 @@ bool debug_signed_bar(float2 uv, float value, int row, out float4 color)
 
 			<!-- Float as a dial -->
 			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="forest_pixelate_dial"></canvas></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+bool debug_dial(float2 uv, float value, int row, int column, out float4 color)
+{
+    float2 cell_uv;
+    color = 0;
+
+    if (!debug_cell(uv, row, 2, column, 2, cell_uv))
+    {
+        return false;
+    }
+
+    float radius_in_pixels = DIAL_RADIUS * _ScreenParams.y / ROW_COUNT;
+    float2 position = (cell_uv * 2.0 - 1.0) / DIAL_RADIUS;
+    float distance_from_center = length(position);
+
+    if (distance_from_center > 1.0)
+    {
+        color = float4(BACKGROUND_COLOR, 1);
+        return true;
+    }
+
+    float pixel_turns = frac(atan2(position.y, position.x) / (2.0 * PI));
+    float turn_difference = abs(frac(pixel_turns - value + 0.5) - 0.5);
+    float distance_to_needle = turn_difference * 2.0 * PI * distance_from_center * radius_in_pixels;
+
+    float needle_width = lerp(HUB_WIDTH, TIP_WIDTH, distance_from_center);
+    bool is_on_needle = distance_to_needle < needle_width;
+
+    color = float4(is_on_needle ? FOREGROUND_COLOR : FACE_COLOR, 1);
+    return true;
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/dial.png" alt="Dial de debug en la esquina de la escena pixelada"></div>
 					<div class="panel code">
@@ -898,7 +1087,7 @@ bool debug_dial(float2 uv, float value, int row, int column, out float4 color)
 			<!-- Digits · code -->
 			<section>
 				<div class="frame">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/digits.png" alt="Valor impreso con dígitos en la esquina de la escena"></div>
+					<div class="media"><canvas data-demo="forest_pixelate_digits"></canvas></div>
 					<div class="panel code">
 						<pre><code class="language-cpp" data-trim><script type="text/template">
 static const float digit_bitmaps[10] =
@@ -965,10 +1154,77 @@ float print_value(float2 string_coords, float value, float integer_digits, float
 				</aside>
 			</section>
 
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/digits.png" alt="Valor impreso con dígitos en la esquina de la escena"></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+static const float digit_bitmaps[10] =
+{
+    480599.0, 139810.0, 476951.0, 476999.0, 350020.0, 464711.0, 464727.0, 476228.0, 481111.0, 481095.0
+};
+
+float print_value(float2 string_coords, float value, float integer_digits, float decimal_places)
+{
+    if (string_coords.y < 0.0 || string_coords.y >= 1.0)
+    {
+        return 0.0;
+    }
+
+    bool is_negative = value < 0.0;
+    value = abs(value);
+
+    float biggest_index = max(floor(log10(value)), 0.0);
+    float digit_index = integer_digits - floor(string_coords.x);
+
+    if (digit_index <= -decimal_places - 1.01)
+    {
+        return 0.0;
+    }
+
+    float character_bitmap = 0.0;
+
+    if (digit_index > biggest_index)
+    {
+        if (is_negative && digit_index < biggest_index + 1.5)
+        {
+            character_bitmap = MINUS_BITMAP;
+        }
+    }
+    else if (digit_index == -1.0)
+    {
+        character_bitmap = DECIMAL_POINT_BITMAP;
+    }
+    else
+    {
+        float reduced_value = value;
+
+        if (digit_index < 0.0)
+        {
+            reduced_value = frac(value);
+            digit_index += 1.0;
+        }
+
+        float digit_value = reduced_value / pow(10.0, digit_index);
+        int digit = (int)floor(fmod(digit_value, 10.0));
+        character_bitmap = digit_bitmaps[digit];
+    }
+
+    float bit_index = floor(frac(string_coords.x) * 4.0) + floor(string_coords.y * 5.0) * 4.0;
+
+    return floor(fmod(character_bitmap / pow(2.0, bit_index), 2.0));
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">[Backup] Unity capture of the slide before.</aside>
+			</section>
+
 			<!-- Full screen (again, leading into split screen) -->
 			<section>
 				<div class="frame">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_fullscreen.png" alt="Valor del detector de bordes mostrado a pantalla completa"></div>
+					<div class="media"><canvas data-demo="forest_edge"></canvas></div>
 					<div class="panel code">
 						<pre data-hl="16-18"><code class="language-cpp" data-trim><script type="text/template">
 float4 Frag(v2f input) : SV_Target
@@ -1003,10 +1259,45 @@ float4 Frag(v2f input) : SV_Target
 				</aside>
 			</section>
 
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_fullscreen.png" alt="Valor del detector de bordes mostrado a pantalla completa"></div>
+					<div class="panel code">
+						<pre data-hl="16-18"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 uv = input.uv;
+    float2 offset = _MainTex_TexelSize.xy * _JumpSize;
+
+    float3 pixel00 = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
+    float3 pixel10 = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
+    // etc...
+
+
+    float3 gradient_x = (pixel22 + 2 * pixel21 + pixel20) - (pixel02 + 2 * pixel01 + pixel00);
+    float3 gradient_y = (pixel02 + 2 * pixel12 + pixel22) - (pixel00 + 2 * pixel10 + pixel20);
+
+    float gradient = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
+
+#if TOOL_SHOW_GRADIENT
+    return float4(gradient.xxx, 1);
+#endif
+
+    float4 color = tex2D(_MainTex, uv);
+
+    return gradient > _Threshold ? _LineColor : color;
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">[Backup] Unity capture of the slide before.</aside>
+			</section>
+
 			<!-- Debug view on part of the screen · split screen -->
 			<section>
 				<div class="frame">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_half.png" alt="Mitad izquierda con el valor de bordes, mitad derecha con la escena"></div>
+					<div class="media"><canvas data-demo="forest_edge_half"></canvas></div>
 					<div class="panel code">
 						<pre data-hl="15-20"><code class="language-cpp" data-trim><script type="text/template">
 float4 Frag(v2f input) : SV_Target
@@ -1044,8 +1335,85 @@ float4 Frag(v2f input) : SV_Target
 				</aside>
 			</section>
 
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_half.png" alt="Mitad izquierda con el valor de bordes, mitad derecha con la escena"></div>
+					<div class="panel code">
+						<pre data-hl="15-20"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 uv = input.uv;
+    float2 offset = _MainTex_TexelSize.xy * _JumpSize;
+
+    float3 pixel00 = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
+    float3 pixel10 = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
+    //etc...
+
+    float3 gradient_x = (pixel22 + 2 * pixel21 + pixel20) - (pixel02 + 2 * pixel01 + pixel00);
+    float3 gradient_y = (pixel02 + 2 * pixel12 + pixel22) - (pixel00 + 2 * pixel10 + pixel20);
+
+    float edge = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
+
+#if TOOL_SHOW_GRADIENT
+    if (uv.x < 0.5)
+    {
+        return float4(edge.xxx, 1);
+    }
+#endif
+
+    float4 color = tex2D(_MainTex, uv);
+
+    return edge > _Threshold ? _LineColor : color;
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">[Backup] Unity capture of the slide before.</aside>
+			</section>
+
 			<!-- Debug view on part of the screen · around the mouse -->
 			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="forest_edge_mouse"></canvas></div>
+					<div class="panel code">
+						<pre data-hl="16-24"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 uv = input.uv;
+    float2 offset = _MainTex_TexelSize.xy * _JumpSize;
+
+    float3 pixel00 = tex2D(_MainTex, uv + offset * float2(-1, -1)).rgb;
+    float3 pixel10 = tex2D(_MainTex, uv + offset * float2( 0, -1)).rgb;
+
+    //etc...
+
+    float3 gradient_x = (pixel22 + 2 * pixel21 + pixel20) - (pixel02 + 2 * pixel01 + pixel00);
+    float3 gradient_y = (pixel02 + 2 * pixel12 + pixel22) - (pixel00 + 2 * pixel10 + pixel20);
+
+    float edge = sqrt(dot(gradient_x, gradient_x) + dot(gradient_y, gradient_y)) * _EdgeFactor;
+
+#if TOOL_SHOW_GRADIENT
+    float2 pixel = uv * _MainTex_TexelSize.zw;
+    float2 mouse_pixel = _DebugMousePosition.xy * _MainTex_TexelSize.zw;
+
+    if (distance(pixel, mouse_pixel) < _DebugRadius)
+    {
+        return float4(edge.xxx, 1);
+    }
+#endif
+
+    float4 color = tex2D(_MainTex, uv);
+
+    return edge > _Threshold ? _LineColor : color;
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/encoding_mouseposition.png" alt="Círculo alrededor del ratón que muestra el valor de bordes"></div>
 					<div class="panel code">
@@ -1111,6 +1479,25 @@ float4 Frag(v2f input) : SV_Target
 			<!-- 2D vector as color -->
 			<section>
 				<div class="frame">
+					<div class="media"><canvas data-demo="forest_flow_gradient"></canvas></div>
+					<div class="panel code">
+						<pre data-hl="5"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 gradient = sobel_gradient(input.uv);
+
+    float2 color = gradient * 0.5 + 0.5;
+
+    return float4(color, 0.0, 1.0);
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
+				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/flow_blur_gradient.png" alt="Gradiente Sobel codificado en RG con 0.5 como cero"></div>
 					<div class="panel code">
 						<pre data-hl="5"><code class="language-cpp" data-trim><script type="text/template">
@@ -1130,6 +1517,25 @@ float4 Frag(v2f input) : SV_Target
 			<!-- 2D vector as color · abs -->
 			<section>
 				<div class="frame">
+					<div class="media"><canvas data-demo="forest_flow_abs"></canvas></div>
+					<div class="panel code">
+						<pre data-hl="5"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 gradient = sobel_gradient(input.uv);
+
+    float2 color = abs(gradient);
+
+    return float4(color, 0.0, 1.0);
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
+				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/flow_blur_abs.png" alt="Valor absoluto del gradiente Sobel en RG"></div>
 					<div class="panel code">
 						<pre data-hl="5"><code class="language-cpp" data-trim><script type="text/template">
@@ -1148,6 +1554,30 @@ float4 Frag(v2f input) : SV_Target
 
 			<!-- 2D vector as angle and magnitude -->
 			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="forest_flow_direction"></canvas></div>
+					<div class="panel code">
+						<pre data-hl="5-10"><code class="language-cpp" data-trim><script type="text/template">
+float4 Frag(v2f input) : SV_Target
+{
+    float2 gradient = sobel_gradient(input.uv);
+
+    float hue = frac(atan2(gradient.y, gradient.x) / (2.0 * PI));
+    float lightness = saturate(0.5 * length(gradient));
+
+    float3 hue_color = saturate(abs(frac(hue + float3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0);
+    float chroma = 1.0 - abs(2.0 * lightness - 1.0);
+    float3 color = lightness + chroma * (hue_color - 0.5);
+
+    return float4(color, 1.0);
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/flow_blur_hl.png" alt="Dirección del gradiente como tono y magnitud como luminosidad"></div>
 					<div class="panel code">
@@ -1201,7 +1631,7 @@ float3 Vector3ToColorAbs(float3 v) {
 			<!-- Discrete values · palette -->
 			<section>
 				<div class="frame">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/palette.png" alt="Objetos de la escena coloreados por ID con una paleta"></div>
+					<div class="media"><canvas data-demo="forest_palette"></canvas></div>
 					<div class="panel code">
 						<pre data-hl="5-6"><code class="language-cpp" data-trim><script type="text/template">
 float4 _Colors[10];
@@ -1221,8 +1651,59 @@ float4 Frag(v2f input) : SV_Target
 				</aside>
 			</section>
 
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/palette.png" alt="Objetos de la escena coloreados por ID con una paleta"></div>
+					<div class="panel code">
+						<pre data-hl="5-6"><code class="language-cpp" data-trim><script type="text/template">
+float4 _Colors[10];
+
+float4 Frag(v2f input) : SV_Target
+{
+    int color_index = _Id % _ColorCount;
+    float3 color = _Colors[color_index].rgb;
+
+    return float4(color, 1);
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">[Backup] Unity capture of the slide before.</aside>
+			</section>
+
 			<!-- Discrete values · hashing -->
 			<section>
+				<div class="frame">
+					<div class="media"><canvas data-demo="forest_hash"></canvas></div>
+					<div class="panel code">
+						<pre data-hl="14-16"><code class="language-cpp" data-trim><script type="text/template">
+uint3 hash(uint3 value)
+{
+    value ^= value >> 16;
+    value *= 0x7feb352du;
+    value ^= value >> 15;
+    value *= 0x846ca68bu;
+    value ^= value >> 16;
+
+    return value;
+}
+
+float4 Frag(v2f input) : SV_Target
+{
+    uint color_index = _Id % _ColorCount;
+    uint3 hashed = hash(color_index + uint3(0u, 0x68e31da4u, 0xb5297a4du));
+    float3 color = float3(hashed >> 8) / 16777215.0;
+
+    return float4(color, 1);
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
 				<div class="frame">
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/hash.png" alt="Objetos de la escena coloreados por ID con un hash"></div>
 					<div class="panel code">
@@ -1570,7 +2051,7 @@ float3 LogView(float3 hdr) {
 			<!-- Where should the threshold be? -->
 			<section data-section="Animation and time">
 				<div class="frame">
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/threshold.png" alt="Escena con un threshold mal elegido"></div>
+					<div class="media"><canvas data-demo="forest_threshold" data-param="0"></canvas></div>
 					<div class="panel code">
 						<pre><code class="language-cpp" data-trim><script type="text/template">
 float Threshold(float3 color, float t) {
@@ -1587,10 +2068,25 @@ float Threshold(float3 color, float t) {
 				</aside>
 			</section>
 
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
+				<div class="frame">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/threshold.png" alt="Escena con un threshold mal elegido"></div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float Threshold(float3 color, float t) {
+    return step(t, Luminance(color));
+}
+    </script></code></pre>
+					</div>
+				</div>
+				<aside class="notes">[Backup] Unity capture of the slide before.</aside>
+			</section>
+
 			<!-- Animate it -->
 			<section>
 				<div class="frame one">
-					<div class="media player"><video src="Unity%20Talk/Unity%20Talk/graphics/Movie_016_d.mp4" data-autoplay loop muted playsinline preload="auto"></video></div>
+					<div class="media"><canvas data-demo="forest_threshold" data-param="1"></canvas></div>
 				</div>
 				<aside class="notes">
 					[Herman] In some cases you may not have your hands free to adjust the slider, in which case you can
@@ -1599,8 +2095,38 @@ float Threshold(float3 color, float t) {
 				</aside>
 			</section>
 
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
+				<div class="frame one">
+					<div class="media player"><video src="Unity%20Talk/Unity%20Talk/graphics/Movie_016_d.mp4" data-autoplay loop muted playsinline preload="auto"></video></div>
+				</div>
+				<aside class="notes">[Backup] Unity capture of the slide before.</aside>
+			</section>
+
 			<!-- Animate it with _Time -->
 			<section>
+				<div class="frame">
+					<div class="media stack">
+						<div class="media"><canvas data-demo="forest_threshold" data-param="1"></canvas></div>
+						<div class="media"><canvas data-demo="forest_threshold" data-param="2"></canvas></div>
+						<div class="labels rows"><span>Sweep</span><span>Pulse</span></div>
+					</div>
+					<div class="panel code">
+						<pre><code class="language-cpp" data-trim><script type="text/template">
+float Sweep(float time, float seconds) {
+    return frac(time / seconds);
+}
+
+float Pulse(float time) {
+    return sin(time) * 0.5 + 0.5;
+}
+    </script></code></pre>
+					</div>
+				</div>
+			</section>
+
+			<!-- Backup: original Unity capture (hidden) -->
+			<section data-visibility="hidden">
 				<div class="frame">
 					<div class="media player stack">
 						<video src="Unity%20Talk/Unity%20Talk/graphics/Movie_016_d.mp4" data-autoplay loop muted playsinline preload="auto"></video>
@@ -1986,6 +2512,7 @@ float SineNoise(float x, float f) {
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/notes/notes.min.js"></script>
 	<script src="models.js"></script>
+	<script src="forest-scene.js"></script>
 	<script src="shader-demos.js"></script>
 	<script>
 		// ---- code size: the less code, the bigger the font -------------------------------------------
@@ -2016,7 +2543,7 @@ float SineNoise(float x, float f) {
 
 		// ---- slide number on every slide ("20 / 63"); N toggles them on and off ---------------------------
 		function numberSlides() {
-			const slides = document.querySelectorAll('.reveal .slides > section');
+			const slides = document.querySelectorAll('.reveal .slides > section:not([data-visibility="hidden"])');
 			slides.forEach((s, i) => {
 				const n = document.createElement('div');
 				n.className = 'num';
