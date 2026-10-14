@@ -578,7 +578,7 @@
 			<!-- Shader Debugging Techniques -->
 			<section>
 				<div class="frame">
-					<div class="media"><canvas data-demo="scene"></canvas></div>
+					<div class="media"><canvas data-demo="title_planes"></canvas></div>
 					<div class="panel text">
 						<h1>Shader Debugging<br>Techniques</h1>
 						<p class="names">Herman Tulleken<br>Sara San Martín</p>
@@ -774,20 +774,6 @@ float4 Frag(v2f input) : SV_Target
 					</div>
 				</div>
 				<aside class="notes">[Backup] Unity capture of the slide before.</aside>
-			</section>
-
-			<!-- Float as color -->
-			<section>
-				<div class="frame one">
-					<div class="media"><canvas data-demo="float_color"></canvas>
-						<div class="labels n3"><span>Gray</span><span>Viridis</span><span>Turbo</span></div>
-					</div>
-				</div>
-				<aside class="notes">
-					[Herman] Black and white is easy and fine for many purposes, but better color maps exist, for
-					example Viridis or Turbo, for better discrimination. Cosine palettes
-					(iquilezles.org/articles/palettes) are another compact option.
-				</aside>
 			</section>
 
 			<!-- Float as color · color map texture · Viridis -->
@@ -1455,12 +1441,12 @@ float4 Frag(v2f input) : SV_Target
 			<!-- Rendering actual digits -->
 			<section>
 				<div class="frame one">
-					<div class="media"><canvas data-demo="digits_probe"></canvas>
+					<div class="media"><canvas data-demo="forest_viridis_probe"></canvas>
 						<div class="credit">shadertoy.com/view/4sBSWW</div>
 					</div>
 				</div>
 				<aside class="notes">
-					[Herman] The probe moves over the field and prints the value under it.
+					[Herman] The probe moves over the scene (luminance shown with Viridis) and prints the value under it. It follows the mouse when you move it over the image.
 				</aside>
 			</section>
 
@@ -1928,7 +1914,7 @@ _Debug ("Debug View", Float) = 0
 			<!-- Antes y después con lerp -->
 			<section data-section="Modos de vista">
 				<div class="frame">
-					<div class="media"><canvas data-demo="lerp"></canvas></div>
+					<div class="media"><canvas data-demo="forest_lerp"></canvas></div>
 					<div class="panel code">
 						<pre><code class="language-cpp" data-trim><script type="text/template">
 float4 original = tex2D(_MainTex, uv);
@@ -1964,7 +1950,7 @@ float3 DepthToColor(float rawDepth) {
 			<!-- Parametrizar todo -->
 			<section>
 				<div class="frame">
-					<div class="media"><canvas data-demo="box_blur"></canvas></div>
+					<div class="media"><canvas data-demo="forest_box_blur"></canvas></div>
 					<div class="panel code">
 						<pre><code class="language-cpp" data-trim><script type="text/template">
 _Radius ("Radius", Range(0, 20)) = 4
@@ -1983,10 +1969,10 @@ _Intensity ("Intensity", Range(0, 1)) = 1
 			<!-- Exagerar: el blur -->
 			<section data-section="Exagerar">
 				<div class="frame">
-					<div class="media"><canvas data-demo="blur_r" data-param="2"></canvas>
+					<div class="media"><canvas data-demo="forest_blur_r" data-param="2"></canvas>
 						<div class="cap">Radio 2</div>
 					</div>
-					<div class="media"><canvas data-demo="blur_r_sin"></canvas>
+					<div class="media"><canvas data-demo="forest_blur_r_sin"></canvas>
 						<div class="cap">Radio con sin(t)</div>
 					</div>
 				</div>
@@ -2026,10 +2012,10 @@ float3 Exaggerate(float3 n, float k) {
 			<section>
 				<div class="frame">
 					<div class="media stack">
-						<div class="cell"><canvas data-demo="hdr_view" data-param="0"></canvas>
+						<div class="cell"><canvas data-demo="forest_hdr_view" data-param="0"></canvas>
 							<div class="cap">saturate(hdr)</div>
 						</div>
-						<div class="cell"><canvas data-demo="hdr_view" data-param="1"></canvas>
+						<div class="cell"><canvas data-demo="forest_hdr_view" data-param="1"></canvas>
 							<div class="cap">LogView(hdr)</div>
 						</div>
 					</div>
@@ -2185,15 +2171,14 @@ float Pulse(float time) {
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/gradient.png" alt="Gradiente de negro a blanco">
 						<div class="cap">Input</div>
 					</div>
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/quantized.png" alt="Gradiente cuantizado">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/dithered.png" alt="Gradiente con dithering">
 						<div class="cap">Output</div>
 					</div>
 				</div>
 				<aside class="notes">
 					[Herman] Gradients are also super useful, and moreover can be computed.
 					Besides using debug images for textures, you can also use them for fullscreen effects to
-					replace the scene. For example, in a quantization filter, you can use gradients to see whether the
-					bands are evenly spaced.
+					replace the scene.
 				</aside>
 			</section>
 
@@ -2203,10 +2188,13 @@ float Pulse(float time) {
 					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/gradient.png" alt="Gradiente de negro a blanco">
 						<div class="cap">Input</div>
 					</div>
-					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/dithered.png" alt="Gradiente con dithering">
+					<div class="media"><img src="Unity%20Talk/Unity%20Talk/graphics/quantized.png" alt="Gradiente cuantizado">
 						<div class="cap">Output</div>
 					</div>
 				</div>
+				<aside class="notes">
+					[Herman] In a quantization filter, you can use gradients to see whether the bands are evenly spaced.
+				</aside>
 			</section>
 
 			<!-- Gradient · hatching -->
@@ -2390,27 +2378,6 @@ k = [-10, 10]</pre>
 				</div>
 			</section>
 
-			<!-- Plot inside the shader -->
-			<section>
-				<div class="frame">
-					<div class="media"><canvas data-demo="plot_shader"></canvas></div>
-					<div class="panel code">
-						<pre><code class="language-cpp" data-trim><script type="text/template">
-float Plot(float2 uv, float y, float w) {
-    float d  = abs(uv.y - y);
-    float aa = fwidth(uv.y - y);
-    float lo = w - aa;
-    float hi = w + aa;
-    return 1 - smoothstep(lo, hi, d);
-}
-    </script></code></pre>
-					</div>
-				</div>
-				<aside class="notes">
-					[Herman] Occasionally, it is useful to plot the graph directly in the shader itself.
-				</aside>
-			</section>
-
 			<!-- ============ 10. TRUCOS DE CÓDIGO ============ -->
 			<!-- Little code tricks -->
 			<section>
@@ -2513,7 +2480,7 @@ float SineNoise(float x, float f) {
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/notes/notes.min.js"></script>
 	<script src="models.js"></script>
 	<script src="forest-scene.js"></script>
-	<script src="shader-demos.js"></script>
+	<script src="shader-demos.js?v=20261014e"></script>
 	<script>
 		// ---- code size: the less code, the bigger the font -------------------------------------------
 		// JetBrains Mono advances 0.6em per column; panels are 960px wide (half a slide) or 1920px

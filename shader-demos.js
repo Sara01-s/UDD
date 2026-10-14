@@ -476,6 +476,49 @@ vec3 graphCurve(vec3 col, vec2 g, float y, vec3 color) {
 `;
 
 const DEMOS = {
+
+  // Title: three invisible parallel planes sweep to and fro through the orbiting showcase scene; each region between them uses
+  // a different debug view (lit, UV grid, lighting through Viridis, world normals). The displays show the camera's
+  // orbit (dial and degrees) and the planes' sweep fraction (signed bar and value, -1 to 1).
+  title_planes: { map: 'showcase', tex: 'uvGrid', debug: true, fs: `
+uniform sampler2D uTex;
+// The sweep goes to and fro over 20 s, slowing down only at the two ends (all lit, all normals), so the planes pass
+// the objects one at a time: all lit, then all UV grid, then all Viridis, then all normals, and back.
+float sweep_views() { return 1.5 - 1.5 * cos(uTime * TAU / 20.); }
+float sweep_fraction() { return sweep_views() / 1.5 - 1.; }
+// three parallel planes, 12 units apart (wider than the objects), so between crossings every object is in one view
+int region(vec3 p) {
+  vec3 n = normalize(vec3(1., 0.2, 0.35));
+  float v = sweep_views();
+  int count = 0;
+  for (int i = 0; i < 3; i++)
+    if (dot(p, n) > (float(i) + 0.5 - v) * 12.) count++;
+  return count;
+}
+vec3 debug_view_color(Hit h, int view) {
+  vec3 albedo = h.id < 0.5 ? floorAlbedo(h.p) : albedoOf(h.id);
+  if (view == 0) return toSRGB(lit(h, albedo, sunDir()));
+  if (view == 1) {
+    vec3 a = textureLod(uTex, objUV(h.p, h.n, h.id), 0.).rgb;
+    return toSRGB(lit(h, a * a, sunDir()) + a * a * 0.15);
+  }
+  if (view == 2) {
+    vec3 lighting = toSRGB(lit(h, vec3(1.), sunDir()));
+    return viridis(saturate(dot(lighting, vec3(0.299, 0.587, 0.114))));
+  }
+  return h.n * 0.5 + 0.5;
+}
+vec4 demo(vec2 uv) {
+  float orbit_turns = fract(camAng() / TAU);
+  float f = sweep_fraction();
+  DEBUG_DISPLAY_DIAL(uv, orbit_turns, -1);
+  DEBUG_DISPLAY_FLOAT(uv, orbit_turns * 360., 1);
+  DEBUG_DISPLAY_SIGNED_BAR(uv, f, 3);
+  DEBUG_DISPLAY_FLOAT(uv, f, 4);
+  Hit h = traceCam(aspectUV(uv), camAng());
+  if (h.t < 0.) return vec4(BG, 1.);
+  return vec4(mix(debug_view_color(h, region(h.p)), BG, fogF(h.t)), 1.);
+}` },
   scene: { map: 'showcase', fs: `
 vec4 demo(vec2 uv) { return vec4(sceneColor(traceCam(aspectUV(uv), camAng())), 1.); }` },
 
@@ -1151,7 +1194,7 @@ vec4 demo(vec2 uv) {
 vec4 demo(vec2 uv) {
   float grid_angle = radians(67.5) * sin(2. * PI * uTime / 12.);
   float grid_angle_turns = grid_angle / (2.0 * PI);
-  DEBUG_DISPLAY_DIAL(uv, grid_angle_turns, 0, 0);
+  DEBUG_DISPLAY_DIAL(uv, grid_angle_turns, 0);
   return pixelate(uv, grid_angle).color;
 }` },
 
@@ -1176,9 +1219,9 @@ vec4 demo(vec2 uv) {
   DEBUG_DISPLAY_BAR(uv, display_world_step.x * 0.5, 0);
   DEBUG_DISPLAY_BAR(uv, display_world_step.y * 0.5, 1);
   DEBUG_DISPLAY_BAR(uv, cell_aspect, 2);
-  DEBUG_DISPLAY_DIAL(uv, grid_angle_turns, 3, 0);
-  DEBUG_DISPLAY_DIAL(uv, offset_phase.x, 3, 1);
-  DEBUG_DISPLAY_DIAL(uv, offset_phase.y, 5, 0);
+  DEBUG_DISPLAY_DIAL(uv, grid_angle_turns, 3);
+  DEBUG_DISPLAY_DIAL(uv, offset_phase.x, 5);
+  DEBUG_DISPLAY_DIAL(uv, offset_phase.y, 7);
   float debug_value = p.cell_distance;
   DEBUG_VIEW(uv, vec4(vec3(debug_value), 1));
   return p.color;
@@ -1317,6 +1360,99 @@ vec4 demo(vec2 uv) {
   DEBUG_DISPLAY_BAR(uv, threshold, 0);
   DEBUG_DISPLAY_FLOAT(uv, threshold, 1);
   return luminosity > threshold ? vec4(1.) : vec4(0., 0., 0., 1.);
+}` },
+
+  // Slide 19: the lit forest scene mapped to Viridis, with a probe that prints the value under it (3 decimals,
+  // digits as in GamelogicDebug.hlsl). The probe drifts on its own and follows the mouse while it moves over the canvas.
+  forest_lerp: { forest: true, fs: `
+vec4 demo(vec2 uv) {
+  vec3 original = sceneAt(uv).rgb;
+  vec3 effect = saturate(floor(vec3(luminance(original)) * 4.) / 3.) * vec3(1., 0.86, 0.7);
+  float blend = 0.5 + 0.5 * sin(uTime * 0.9);
+  vec3 col = mix(original, effect, blend);
+  if (uv.y < 0.03) col = mix(vec3(0.15), ACCENT, step(uv.x, blend));
+  return vec4(col, 1.);
+}` },
+
+  forest_box_blur: { forest: true, scale: 0.5, fs: `
+vec4 demo(vec2 uv) {
+  int radius = int(3. + 3. * sin(uTime * 0.8) + 0.5);
+  vec2 stride = 1.5 / (180. * ASPECT);
+  vec3 sum = vec3(0.);
+  for (int x = -radius; x <= radius; x++)
+    for (int y = -radius; y <= radius; y++)
+      sum += sceneAt(uv + vec2(float(x), float(y)) * stride).rgb;
+  float count = float((2 * radius + 1) * (2 * radius + 1));
+  vec3 col = sum / count;
+  if (uv.y < 0.03) col = mix(vec3(0.15), ACCENT, step(uv.x, float(radius) / 6.));
+  return vec4(col, 1.);
+}` },
+
+  forest_blur_r: { forest: true, scale: 0.6, fs: `
+vec4 demo(vec2 uv) {
+  vec2 stride = (uParam / 4.) / (180. * ASPECT);
+  vec3 sum = vec3(0.);
+  for (int x = -4; x <= 4; x++)
+    for (int y = -4; y <= 4; y++)
+      sum += sceneAt(uv + vec2(float(x), float(y)) * stride).rgb;
+  return vec4(sum / 81., 1.);
+}` },
+
+  forest_blur_r_sin: { forest: true, scale: 0.6, fs: `
+vec4 demo(vec2 uv) {
+  float radius = 21. + 19. * sin(uTime * 0.8);
+  vec2 stride = (radius / 4.) / (180. * ASPECT);
+  vec3 sum = vec3(0.);
+  for (int x = -4; x <= 4; x++)
+    for (int y = -4; y <= 4; y++)
+      sum += sceneAt(uv + vec2(float(x), float(y)) * stride).rgb;
+  vec3 col = sum / 81.;
+  vec2 frag = uv * uRes;
+  float px = uRes.y / 48.;
+  vec2 o = vec2(px * 1.5, uRes.y - px * 7.5);
+  if (frag.x < o.x + 2. * 3.75 * px + px && frag.y > o.y - px && frag.y < o.y + px * 6.) col = vec3(0.188, 0.157, 0.478);
+  col = mix(col, vec3(0.976, 0.933, 0.204), printIntPx(uint(radius + 0.5), frag, o, px, 2u));
+  return vec4(col, 1.);
+}` },
+
+  forest_hdr_view: { forest: true, hdr: true, fs: `
+vec3 LogView(vec3 hdr) { return log2(hdr + 1.) / 3.; }
+uniform vec3 uSun;
+uniform float uSunIntensity;
+vec4 demo(vec2 uv) {
+  vec3 e = sceneAt(uv).rgb;
+  vec3 hdr = e / max(1. - e, 1e-3);
+  // light spilling around the sun (like the halo in testImageHDR): falls off with distance in sun radii
+  float d = length((uv - uSun.xy) * uRes) / max(uSun.z, 1.);
+  hdr += vec3(1.0, 0.8, 0.5) * uSunIntensity * exp(-d * d * 0.18);
+  vec3 col = uParam < 0.5 ? saturate(hdr) : LogView(hdr);
+  return vec4(pow(col, vec3(1. / 2.2)), 1.);
+}` },
+
+  forest_viridis_probe: { forest: true, fs: `
+float field(vec2 uv) { return saturate(to_luminosity(sceneAt(uv).rgb)); }
+vec4 demo(vec2 uv) {
+  vec2 frag = uv * uRes;
+  vec3 col = viridis(field(uv));
+  vec2 probe_uv = debugMousePosition();
+  float value = field(probe_uv);
+  vec2 probe = probe_uv * uRes;
+  float px = uRes.y / 1080.;
+  float ring = abs(length(frag - probe) - 18. * px);
+  col = mix(col, GAMELOGIC_DEBUG_BACKGROUND_COLOR, 1. - smoothstep(4. * px, 5.5 * px, ring));
+  col = mix(col, GAMELOGIC_DEBUG_FOREGROUND_COLOR, 1. - smoothstep(1.5 * px, 3. * px, ring));
+  // value box to the upper right of the probe (to the left near the right edge): 6 characters, "0.734"
+  float char_height = 46. * px, char_width = char_height * 0.8, pad = 12. * px;
+  vec2 box_size = vec2(5. * char_width, char_height) + 2. * pad;
+  vec2 box_min = probe + vec2(34. * px, 22. * px);
+  if (box_min.x + box_size.x > uRes.x) box_min.x = probe.x - 34. * px - box_size.x;
+  if (box_min.y + box_size.y > uRes.y) box_min.y = probe.y - 22. * px - box_size.y;
+  if (all(greaterThan(frag, box_min)) && all(lessThan(frag, box_min + box_size))) {
+    vec2 string_coords = (frag - box_min - pad) / vec2(char_width, char_height) + vec2(1., 0.);
+    float on_digit = debug_print_value_(string_coords, value, 1., 3.);
+    return RGB1(mix(GAMELOGIC_DEBUG_BACKGROUND_COLOR, GAMELOGIC_DEBUG_FOREGROUND_COLOR, on_digit));
+  }
+  return vec4(col, 1.);
 }` }
 };
 
@@ -1332,7 +1468,7 @@ const MAP_FIT = { none: 1.1, sphere: 0.9, showcase: 1.45, shapes: 1.5, outline: 
 function buildSource(spec) {
   const map = spec.map || 'none';
   const fit = (spec.fit != null ? spec.fit : MAP_FIT[map]).toFixed(2);
-  return HEADER + '#define FIT_W ' + fit + '\n' + LIB + MAPS[map] + RAY + spec.fs + MAIN;
+  return HEADER + '#define FIT_W ' + fit + '\n' + LIB + (spec.debug ? GAMELOGIC_DEBUG : '') + MAPS[map] + RAY + spec.fs + MAIN;
 }
 
 function createRenderer(opts) {
@@ -1661,9 +1797,6 @@ bool debug_corner_legend_cell_(vec2 uv, out vec2 cell_uv) {
   cell_uv = vec2(local.x, 1.0 - local.y);
   return all(greaterThanEqual(local, vec2(0.))) && all(lessThan(local, vec2(1.)));
 }
-bool debug_is_on_separator_(vec2 cell_uv, float row_span) {
-  return cell_uv.y * row_span * debug_row_size_() < GAMELOGIC_DEBUG_SEPARATOR_WIDTH;
-}
 float debug_coverage_(float signed_distance_in_pixels) { return 1.0 - smoothstep(-0.5, 0.5, signed_distance_in_pixels); }
 float debug_box_distance_(vec2 position, vec2 box_min, vec2 box_max) {
   vec2 center = 0.5 * (box_min + box_max);
@@ -1702,7 +1835,6 @@ bool debug_view(vec2 uv, vec4 debug_color, out vec4 color) {
   float distance_to_area = debug_area_distance_(uv);
   color = debug_color;
   if (distance_to_area < 0.0) return true;
-  if (distance_to_area < GAMELOGIC_DEBUG_SEPARATOR_WIDTH) { color = RGB1(GAMELOGIC_DEBUG_SEPARATOR_COLOR); return true; }
   return false;
 }
 
@@ -1719,7 +1851,6 @@ bool debug_legend(vec2 uv, out vec4 color) {
   vec2 pixel = debug_pixel_from_top_left_(uv);
   color = vec4(0.);
   if (pixel.y >= row_size) return false;
-  if (row_size - pixel.y < GAMELOGIC_DEBUG_SEPARATOR_WIDTH) { color = RGB1(GAMELOGIC_DEBUG_SEPARATOR_COLOR); return true; }
   color = debug_legend_color_(pixel.x, TEXEL_SIZE.z, pixel.y / row_size);
   return true;
 }
@@ -1794,7 +1925,6 @@ bool debug_bar(vec2 uv, float value, float row_index, out vec4 color) {
   vec2 cell_uv;
   color = vec4(0.);
   if (!debug_cell_(uv, row_index + 1., 1., 0., 1., cell_uv)) return false;
-  if (debug_is_on_separator_(cell_uv, 1.)) { color = RGB1(GAMELOGIC_DEBUG_SEPARATOR_COLOR); return true; }
   bool is_in_range = value >= 0.0 && value <= 1.0;
   vec3 bar_color = is_in_range ? GAMELOGIC_DEBUG_FOREGROUND_COLOR : GAMELOGIC_DEBUG_OUT_OF_RANGE_COLOR;
   color = debug_bar_color_(cell_uv, 0.0, saturate(value), bar_color);
@@ -1804,20 +1934,19 @@ bool debug_signed_bar(vec2 uv, float value, float row_index, out vec4 color) {
   vec2 cell_uv;
   color = vec4(0.);
   if (!debug_cell_(uv, row_index + 1., 1., 0., 1., cell_uv)) return false;
-  if (debug_is_on_separator_(cell_uv, 1.)) { color = RGB1(GAMELOGIC_DEBUG_SEPARATOR_COLOR); return true; }
   float fill_end = 0.5 + 0.5 * clamp(value, -1.0, 1.0);
   bool is_in_range = abs(value) <= 1.0;
   vec3 bar_color = is_in_range ? GAMELOGIC_DEBUG_FOREGROUND_COLOR : GAMELOGIC_DEBUG_OUT_OF_RANGE_COLOR;
   color = debug_bar_color_(cell_uv, min(0.5, fill_end), max(0.5, fill_end), bar_color);
   return true;
 }
-bool debug_dial(vec2 uv, float value, float row_index, float column_index, out vec4 color) {
+// Deck variation: the dial spans the full display width (two rows high), with the circle centred in it
+bool debug_dial(vec2 uv, float value, float row_index, out vec4 color) {
   vec2 cell_uv;
   color = vec4(0.);
-  if (!debug_cell_(uv, row_index + 1., 2., column_index, 2., cell_uv)) return false;
-  if (debug_is_on_separator_(cell_uv, 2.)) { color = RGB1(GAMELOGIC_DEBUG_SEPARATOR_COLOR); return true; }
+  if (!debug_cell_(uv, row_index + 1., 2., 0., 1., cell_uv)) return false;
   float radius_in_pixels = GAMELOGIC_DEBUG_DIAL_RADIUS * debug_row_size_();
-  vec2 position = (cell_uv * 2.0 - 1.0) / GAMELOGIC_DEBUG_DIAL_RADIUS;
+  vec2 position = (cell_uv * 2.0 - 1.0) * vec2(GAMELOGIC_DEBUG_REGION_WIDTH_IN_ROWS / 2.0, 1.0) / GAMELOGIC_DEBUG_DIAL_RADIUS;
   float distance_from_center = length(position);
   float face_coverage = debug_coverage_((distance_from_center - 1.0) * radius_in_pixels);
   float pixel_turns = fract(atan(position.y, position.x) / (2.0 * PI));
@@ -1862,7 +1991,6 @@ bool debug_float(vec2 uv, float value, float row_index, out vec4 color) {
   vec2 cell_uv;
   color = vec4(0.);
   if (!debug_cell_(uv, row_index + 1., 1., 0., 1., cell_uv)) return false;
-  if (debug_is_on_separator_(cell_uv, 1.)) { color = RGB1(GAMELOGIC_DEBUG_SEPARATOR_COLOR); return true; }
   float row_size = debug_row_size_();
   vec2 pixel = cell_uv * vec2(GAMELOGIC_DEBUG_REGION_WIDTH_IN_ROWS * row_size, row_size);
   float character_height = GAMELOGIC_DEBUG_FLOAT_CHARACTER_HEIGHT * row_size;
@@ -1884,7 +2012,7 @@ bool debug_float(vec2 uv, float value, float row_index, out vec4 color) {
 #define DEBUG_DISPLAY_LEGEND_DIRECTION(uv) { vec4 c_; if (debug_legend_direction((uv), c_)) return c_; }
 #define DEBUG_DISPLAY_BAR(uv, value, row_index) { vec4 c_; if (debug_bar((uv), (value), float(row_index), c_)) return c_; }
 #define DEBUG_DISPLAY_SIGNED_BAR(uv, value, row_index) { vec4 c_; if (debug_signed_bar((uv), (value), float(row_index), c_)) return c_; }
-#define DEBUG_DISPLAY_DIAL(uv, value, row_index, column_index) { vec4 c_; if (debug_dial((uv), (value), float(row_index), float(column_index), c_)) return c_; }
+#define DEBUG_DISPLAY_DIAL(uv, value, row_index) { vec4 c_; if (debug_dial((uv), (value), float(row_index), c_)) return c_; }
 #define DEBUG_DISPLAY_FLOAT(uv, value, row_index) { vec4 c_; if (debug_float((uv), (value), float(row_index), c_)) return c_; }
 `;
 
@@ -1919,6 +2047,7 @@ in vec3 vN, vAlb, vWorld;
 in vec4 vLight;
 flat in vec4 vId;
 uniform vec3 uLightDir[4], uLightColor[4], uEye;
+uniform float uHdr;
 uniform sampler2DShadow uShadow;
 layout(location = 0) out vec4 outLit;
 layout(location = 1) out vec4 outId;
@@ -1951,6 +2080,11 @@ void main() {
   }
   // the Sun is lit too, with an emission close to its base colour (Sun.mat), so its lit side is brighter
   vec3 c = alb * light + spec + (vId.w > 0.5 ? alb * 0.85 : vec3(0.));
+  if (uHdr > 0.) {
+    vec3 hdr = alb * light + spec + (vId.w > 0.5 ? alb * uHdr : vec3(0.));
+    outLit = vec4(hdr / (1. + hdr), 1.);
+    return;
+  }
   outLit = vec4(pow(clamp(c, 0., 1.), vec3(1. / 2.2)), 1.);
 }
 `;
@@ -2218,7 +2352,10 @@ function createForestRenderer() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
     gl.viewport(0, 0, w, h);
     // camera background (Solid Color, Azure), no object (ID 0), and a zero normal (0.5 when packed)
-    gl.clearBufferfv(gl.COLOR, 0, new Float32Array([0.008, 0.592, 0.996, 1]));
+    // HDR test: the sun's emission pulses like testImageHDR (3.5 + 3 sin(0.8 t)); the background is encoded too
+    const hdr = spec.hdr ? 3.5 + 3 * Math.sin(time * 0.8) : 0;
+    const sky = [0.008, 0.592, 0.996].map(c => { const l = Math.pow(c, 2.2); return spec.hdr ? l / (1 + l) : c; });
+    gl.clearBufferfv(gl.COLOR, 0, new Float32Array([...sky, 1]));
     gl.clearBufferfv(gl.COLOR, 1, new Float32Array([0, 0, 0, 1]));
     gl.clearBufferfv(gl.COLOR, 2, new Float32Array([0.5, 0.5, 0.5, 1]));
     gl.clear(gl.DEPTH_BUFFER_BIT);
@@ -2228,6 +2365,7 @@ function createForestRenderer() {
     gl.uniform3fv(U(sceneProg, 'uLightDir'), new Float32Array(lightDir.flat()));
     gl.uniform3fv(U(sceneProg, 'uLightColor'), new Float32Array(lightColor.flat()));
     gl.uniform3fv(U(sceneProg, 'uEye'), eye);
+    gl.uniform1f(U(sceneProg, 'uHdr'), hdr);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, shadowTex);
     gl.uniform1i(U(sceneProg, 'uShadow'), 0);
@@ -2247,6 +2385,15 @@ function createForestRenderer() {
       gl.bindTexture(gl.TEXTURE_2D, textures[i]);
       gl.uniform1i(loc, i);
     });
+    if (spec.hdr) {
+      // the Sun sphere (UDD2026 ForestWorld: centre (10.09, 5.54, -19.21) in Unity, radius 1), projected to the canvas
+      const c = [10.09, 5.54, 19.21];
+      const p = [0, 1, 2, 3].map(r => vp[r] * c[0] + vp[4 + r] * c[1] + vp[8 + r] * c[2] + vp[12 + r]);
+      const dist = Math.hypot(c[0] - eye[0], c[1] - eye[1], c[2] - eye[2]);
+      const radiusPx = h / 2 / Math.tan(S.fov * Math.PI / 360) / dist;
+      gl.uniform3f(U(e.prog, 'uSun'), (p[0] / p[3]) * 0.5 + 0.5, (p[1] / p[3]) * 0.5 + 0.5, radiusPx);
+      gl.uniform1f(U(e.prog, 'uSunIntensity'), hdr);
+    }
     gl.bindVertexArray(quad);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.bindVertexArray(null);
